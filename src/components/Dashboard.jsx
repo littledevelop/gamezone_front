@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
@@ -13,45 +14,103 @@ import "../styles/Dashboard.css";
 function Dashboard({ onLogout }) {
     const user = JSON.parse(localStorage.getItem("user") || "{}");
     const role = user?.role_name;
-    const [activePage, setActivePage] = useState("Dashboard");
 
-    const menuItems = ["Dashboard", "Games", "Gaming Station", "Memberships", "Bookings", "Game Session", "Payments"];
+    const [activePage, setActivePage] = useState("Dashboard");
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    const menuItems = [
+        "Dashboard",
+        "Games",
+        "Gaming Station",
+        "Memberships",
+        "Bookings",
+        "Game Session",
+        "Payments"
+    ];
 
     const roleMenuItems = {
         Admin: menuItems,
         Staff: menuItems,
-        Player: ["Dashboard", "Games", "Bookings", "Game Session"],
+        Player: [
+            "Dashboard",
+            "Games",
+            "Bookings",
+            "Game Session"
+        ],
     };
-
 
     const visibleMenuItems = roleMenuItems[role] || [];
 
+    const handlePageChange = (page) => {
+        setActivePage(page);
+        setSidebarOpen(false);
+    };
+
     const renderPage = () => {
         switch (activePage) {
-            case "Dashboard": return <DashboardHome user={user} setActivePage={setActivePage} />;
-            case "Games": return <GamesPage />;
-            case "Gaming Station": return <GamingStation />;
-            case "Memberships": return <Memberships />;
-            case "Bookings": return <Booking />;
-            case "Game Session": return <GameSession />;
-            case "Payments": return <Payments />;
-            default: return <div className="empty-state"><h3>Page not available</h3><p>This page is not available yet.</p></div>;
+            case "Dashboard":
+                return (
+                    <DashboardHome
+                        user={user}
+                        setActivePage={handlePageChange}
+                    />
+                );
+
+            case "Games":
+                return <GamesPage />;
+
+            case "Gaming Station":
+                return <GamingStation />;
+
+            case "Memberships":
+                return <Memberships />;
+
+            case "Bookings":
+                return <Booking />;
+
+            case "Game Session":
+                return <GameSession />;
+
+            case "Payments":
+                return <Payments />;
+
+            default:
+                return (
+                    <div className="empty-state">
+                        <h3>Page not available</h3>
+                        <p>This page is not available yet.</p>
+                    </div>
+                );
         }
     };
 
     return (
         <div className="app">
             <div className="app-layout">
-                <Sidebar activePage={activePage} setActivePage={setActivePage} visibleMenuItems={visibleMenuItems} onLogout={onLogout} />
+
+                <Sidebar
+                    activePage={activePage}
+                    setActivePage={handlePageChange}
+                    visibleMenuItems={visibleMenuItems}
+                    onLogout={onLogout}
+                    sidebarOpen={sidebarOpen}
+                    setSidebarOpen={setSidebarOpen}
+                />
+
                 <div className="main-wrapper">
-                    <Navbar />
-                    <main className="page-content">{renderPage()}</main>
+
+                    <Navbar
+                        onMenuClick={() => setSidebarOpen(true)}
+                    />
+
+                    <main className="page-content">
+                        {renderPage()}
+                    </main>
+
                 </div>
             </div>
         </div>
     );
 }
-
-
 
 export default Dashboard;
