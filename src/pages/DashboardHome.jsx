@@ -39,9 +39,17 @@ function DashboardHome({ user, setActivePage }) {
             
             const bookingData = bookings.data.bookings || [];
 
-            const today = new Date().toISOString().split("T")[0];
+            const today = new Date();
 
-            const todayBookings = bookingData.filter((booking)=>booking.booking_date === today).length;
+          const todayBookings = bookingData.filter((booking) => {
+    const bookingDate = new Date(booking.booking_date);
+
+    return (
+        bookingDate.getDate() === today.getDate() &&
+        bookingDate.getMonth() === today.getMonth() &&
+        bookingDate.getFullYear() === today.getFullYear()
+    );
+}).length;
             setStats({
                 games: games.data.count || 0,
                 stations: stations.data.data?.length || 0,
