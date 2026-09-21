@@ -1,5 +1,6 @@
 /* =========================================
-   GAMING STATION.CSS - FINAL PRO v3
+   GAMING STATION.CSS - FINAL PRO
+   GameZone / Zestopia Theme
    Navy #070A3A + Green #7CFF3A
 ========================================= */
 
@@ -7,6 +8,10 @@
   width: 100%;
   padding: 0;
 }
+
+/* =========================================
+   HEADER
+========================================= */
 
 .gaming-station-header {
   display: flex;
@@ -20,7 +25,7 @@
   font-size: 26px;
   font-weight: 800;
   color: #0F172A;
-  letter-spacing: -.5px;
+  letter-spacing: -0.5px;
   line-height: 1.1;
   margin: 0;
 }
@@ -28,9 +33,19 @@
 .gaming-station-header p {
   font-size: 13.5px;
   color: #64748B;
-  margin-top: 5px;
+  margin: 5px 0 0;
   line-height: 1.5;
 }
+
+.station-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* =========================================
+   STATION COUNT
+========================================= */
 
 .station-count {
   display: inline-flex;
@@ -44,7 +59,11 @@
   font-size: 12.5px;
   font-weight: 600;
   white-space: nowrap;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, .04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.station-count svg {
+  color: #070A3A;
 }
 
 .station-count strong {
@@ -56,19 +75,65 @@
   font-weight: 700;
 }
 
-/* MESSAGE */
+/* =========================================
+   ADD BUTTON
+========================================= */
+
+.add-station-btn {
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 15px;
+  border: 1px solid #070A3A;
+  border-radius: 9px;
+  background: #070A3A;
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.add-station-btn:hover {
+  background: #0B1050;
+  border-color: #0B1050;
+  transform: translateY(-1px);
+}
+
+.add-station-btn svg {
+  color: #7CFF3A;
+}
+
+/* =========================================
+   MESSAGE
+========================================= */
+
 .gaming-station-message {
   padding: 12px 14px;
   margin-bottom: 20px;
   border-radius: 10px;
   font-size: 13px;
   font-weight: 500;
+}
+
+.gaming-station-message.success {
+  background: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  color: #15803D;
+}
+
+.gaming-station-message.error {
   background: #FEF2F2;
   border: 1px solid #FECACA;
   color: #DC2626;
 }
 
-/* TOOLBAR */
+/* =========================================
+   TOOLBAR
+========================================= */
+
 .gaming-toolbar {
   display: flex;
   justify-content: space-between;
@@ -82,12 +147,24 @@
   align-items: center;
   gap: 10px;
   width: 100%;
-  max-width: 360px;
+  max-width: 420px;
   height: 40px;
-  padding: 0 14px;
+  padding: 0 12px 0 14px;
   background: #fff;
   border: 1px solid #E2E8F0;
   border-radius: 10px;
+  transition: border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.gaming-search:focus-within {
+  border-color: #070A3A;
+  box-shadow: 0 0 0 3px rgba(7, 10, 58, 0.06);
+}
+
+.gaming-search > svg {
+  color: #94A3B8;
+  flex-shrink: 0;
 }
 
 .gaming-search input {
@@ -99,28 +176,64 @@
   background: transparent;
 }
 
-/* GRID */
+.gaming-search input::placeholder {
+  color: #94A3B8;
+}
+
+.clear-search-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: #F1F5F9;
+  color: #64748B;
+  border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.clear-search-btn:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+.station-results {
+  font-size: 12.5px;
+  color: #64748B;
+  white-space: nowrap;
+}
+
+/* =========================================
+   GRID
+========================================= */
+
 .gaming-station-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
 }
 
-/* CARD */
+/* =========================================
+   CARD
+========================================= */
+
 .gaming-station-card {
   background: #fff;
   border: 1px solid #E2E8F0;
   border-radius: 16px;
   padding: 18px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, .03);
-  transition: all .22s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  transition: all 0.22s ease;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .gaming-station-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 10px 28px rgba(7, 10, 58, .08);
+  box-shadow: 0 10px 28px rgba(7, 10, 58, 0.08);
   border-color: #CBD5E1;
 }
 
@@ -152,34 +265,48 @@
   border: 1px solid transparent;
 }
 
-.station-status.available,
-.station-status.active,
-.station-status.online {
+/* AVAILABLE */
+
+.station-status.available {
   background: #F0FDF4;
   color: #16A34A;
-  border-color: #BBF7D0
+  border-color: #BBF7D0;
 }
 
-.station-status.occupied,
-.station-status.busy {
+/* OCCUPIED */
+
+.station-status.occupied {
   background: #EFF6FF;
   color: #2563EB;
-  border-color: #BFDBFE
+  border-color: #BFDBFE;
 }
 
-.station-status.offline,
+/* MAINTENANCE */
+
+.station-status.maintenance {
+  background: #FFF7ED;
+  color: #EA580C;
+  border-color: #FED7AA;
+}
+
+/* INACTIVE */
+
 .station-status.inactive {
   background: #F1F5F9;
   color: #64748B;
-  border-color: #E2E8F0
+  border-color: #E2E8F0;
 }
 
 .gaming-station-card h3 {
   font-size: 15px;
   font-weight: 700;
   color: #0F172A;
-  margin-bottom: 14px;
+  margin: 0 0 14px;
 }
+
+/* =========================================
+   DETAILS
+========================================= */
 
 .station-details {
   display: flex;
@@ -199,15 +326,23 @@
 
 .station-detail-row span {
   font-size: 11.5px;
-  color: #64748B
+  color: #64748B;
 }
 
 .station-detail-row strong {
+  max-width: 65%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 12.5px;
   font-weight: 600;
   color: #0F172A;
-  text-align: right
+  text-align: right;
 }
+
+/* =========================================
+   CARD FOOTER
+========================================= */
 
 .station-card-footer {
   margin-top: 14px;
@@ -216,37 +351,65 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
 }
 
-.station-card-footer span {
+.station-card-footer > span {
   font-size: 11px;
   color: #94A3B8;
-  font-weight: 500
+  font-weight: 500;
 }
 
-.station-card-footer strong {
-  font-size: 11.5px;
+.station-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.station-manage-btn,
+.station-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.18s ease;
+}
+
+.station-manage-btn {
+  background: transparent;
+  color: #070A3A;
+  font-size: 12px;
   font-weight: 600;
-  color: #0F172A
+  padding: 5px 8px;
 }
 
-.station-manage-btn{
-  background:transparent;
-  border:none;
-  font-size:12px;
-  font-weight:600;
-  color:#070A3A;
-  cursor:pointer;
-  padding:4px 8px;
-  border-radius:6px;
-  transition:all .18s;
-}
-.station-manage-btn:hover{
-  background:#F1F5F9;
-  color:#070A3A;
+.station-manage-btn:hover {
+  background: #F1F5F9;
 }
 
-/* EMPTY & LOADING */
+.station-delete-btn {
+  width: 29px;
+  height: 29px;
+  background: transparent;
+  color: #DC2626;
+}
+
+.station-delete-btn:hover {
+  background: #FEF2F2;
+}
+
+.station-delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* =========================================
+   EMPTY
+========================================= */
+
 .gaming-station-empty {
   min-height: 380px;
   display: flex;
@@ -258,19 +421,49 @@
   border: 1px solid #E2E8F0;
   border-radius: 16px;
   text-align: center;
+  color: #94A3B8;
 }
 
 .gaming-station-empty h3 {
   font-size: 15px;
   font-weight: 700;
   color: #0F172A;
-  margin: 10px 0 6px
+  margin: 10px 0 6px;
 }
 
 .gaming-station-empty p {
   font-size: 13px;
-  color: #64748B
+  color: #64748B;
+  margin: 0;
 }
+
+.empty-add-btn {
+  margin-top: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 13px;
+  background: #070A3A;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.empty-add-btn svg {
+  color: #7CFF3A;
+}
+
+.empty-add-btn:hover {
+  background: #0B1050;
+}
+
+/* =========================================
+   LOADING
+========================================= */
 
 .gaming-station-loading {
   min-height: 400px;
@@ -282,33 +475,385 @@
   color: #64748B;
 }
 
+.gaming-station-loading p {
+  margin: 0;
+  font-size: 13px;
+}
+
 .loading-spinner {
   width: 28px;
   height: 28px;
   border: 3px solid #E2E8F0;
   border-top-color: #070A3A;
   border-radius: 50%;
-  animation: spin .8s linear infinite;
+  animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
   to {
-    transform: rotate(360deg)
+    transform: rotate(360deg);
   }
 }
 
-@media(max-width:1100px) {
+/* =========================================
+   MODAL OVERLAY
+========================================= */
+
+.station-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(7, 10, 58, 0.55);
+  backdrop-filter: blur(3px);
+}
+
+/* =========================================
+   MODAL
+========================================= */
+
+.station-modal {
+  width: 100%;
+  max-width: 600px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 24px 70px rgba(7, 10, 58, 0.22);
+  animation: stationModalIn 0.2s ease;
+}
+
+@keyframes stationModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* =========================================
+   MODAL HEADER
+========================================= */
+
+.station-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 24px;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.station-modal-header h2 {
+  margin: 0;
+  color: #070A3A;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.station-modal-header p {
+  margin: 5px 0 0;
+  color: #64748B;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.station-modal-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: none;
+  background: #F1F5F9;
+  color: #64748B;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.station-modal-close:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+.station-modal-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* =========================================
+   FORM
+========================================= */
+
+.station-form {
+  padding: 22px 24px 24px;
+}
+
+.station-form-group {
+  margin-bottom: 17px;
+}
+
+.station-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.station-form-group label {
+  min-height: 18px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 7px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.station-form-group label svg {
+  color: #64748B;
+}
+
+.station-form-group label span {
+  color: #DC2626;
+}
+
+.station-form-group input,
+.station-form-group select,
+.station-form-group textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #CBD5E1;
+  outline: none;
+  background: #fff;
+  color: #0F172A;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  transition: border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.station-form-group input,
+.station-form-group select {
+  height: 40px;
+  padding: 0 11px;
+}
+
+.station-form-group textarea {
+  min-height: 80px;
+  padding: 10px 11px;
+  resize: vertical;
+}
+
+.station-form-group input::placeholder,
+.station-form-group textarea::placeholder {
+  color: #94A3B8;
+}
+
+.station-form-group input:focus,
+.station-form-group select:focus,
+.station-form-group textarea:focus {
+  border-color: #070A3A;
+  box-shadow: 0 0 0 3px rgba(7, 10, 58, 0.06);
+}
+
+.station-form-group input:disabled,
+.station-form-group select:disabled,
+.station-form-group textarea:disabled {
+  background: #F8FAFC;
+  cursor: not-allowed;
+}
+
+/* =========================================
+   FORM ERROR
+========================================= */
+
+.station-form-error {
+  display: block;
+  margin-top: 5px;
+  color: #DC2626;
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+/* =========================================
+   FORM ACTIONS
+========================================= */
+
+.station-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 5px;
+  margin-top: 3px;
+  border-top: 1px solid #F1F5F9;
+}
+
+.station-cancel-btn,
+.station-save-btn {
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.station-cancel-btn {
+  background: #fff;
+  border: 1px solid #CBD5E1;
+  color: #475569;
+}
+
+.station-cancel-btn:hover {
+  background: #F8FAFC;
+  border-color: #94A3B8;
+}
+
+.station-save-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 120px;
+  background: #070A3A;
+  border: 1px solid #070A3A;
+  color: #fff;
+}
+
+.station-save-btn:hover {
+  background: #0B1050;
+}
+
+.station-cancel-btn:disabled,
+.station-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* =========================================
+   BUTTON SPINNER
+========================================= */
+
+.button-spinner {
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #7CFF3A;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media (max-width: 1100px) {
   .gaming-station-grid {
-    grid-template-columns: repeat(2, 1fr)
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
-@media(max-width:700px) {
+@media (max-width: 800px) {
   .gaming-station-header {
-    flex-direction: column
+    flex-direction: column;
   }
 
-  .gaming-station-grid {
-    grid-template-columns: 1fr
+  .station-header-actions {
+    width: 100%;
+    justify-content: space-between;
   }
+
+  .gaming-toolbar {
+    align-items: stretch;
+  }
+
+  .gaming-search {
+    max-width: none;
+  }
+}
+
+@media (max-width: 700px) {
+  .gaming-station-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gaming-toolbar {
+    flex-direction: column;
+  }
+
+  .station-results {
+    align-self: flex-end;
+  }
+
+  .station-form-row {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .station-modal-overlay {
+    padding: 12px;
+  }
+
+  .station-modal {
+    max-height: calc(100vh - 24px);
+  }
+
+  .station-modal-header,
+  .station-form {
+    padding-left: 18px;
+    padding-right: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .station-header-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .station-count,
+  .add-station-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .gaming-station-card {
+    padding: 15px;
+  }
+
+  .station-modal-header {
+    padding-top: 18px;
+    padding-bottom: 18px;
+  }
+
+  .station-form-actions {
+    flex-direction: column-reverse;
+  }
+
+  .station-cancel-btn,
+  .station-save-btn {
+    width: 100%;
+  }
+}
+.station-modal-error {
+    margin:16px 24px 16px;
+    padding: 10px 12px;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    background: #fef2f2;
+    color: #dc2626;
+    font-size: 13px;
+    line-height: 1.4;
 }

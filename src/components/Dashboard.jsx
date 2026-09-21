@@ -35,7 +35,7 @@ function Dashboard({ onLogout }) {
             "Dashboard",
             "Games",
             "Bookings",
-            "Game Session"
+            "Game Session",
         ],
     };
 

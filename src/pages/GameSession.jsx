@@ -60,22 +60,106 @@ function GameSession() {
     }
   }, []);
 
-  const handleStart = async (e) => {
-    e.preventDefault();
-    if (!selectedBookingId) return;
-    try {
-      setStarting(true);
-      const res = await api.post("/game-session", { booking_id: selectedBookingId })
-       .catch(() => api.post("/game-sessions", { booking_id: selectedBookingId }));
-      if (res.data.success) {
-        setShowStart(false);
-        setSelectedBookingId("");
-        await fetchSessions();
-      } else setMessage(res.data.message || "Failed to start");
-    } catch (err) {
-      setMessage(err.response?.data?.message || "Failed to start session");
-    } finally { setStarting(false); }
-  };
+ const handleStart = async (e) => {
+  e.preventDefault();
+
+  if (!selectedBookingId) return;
+
+  const booking = bookings.find(
+    (b) => String(b.id) === String(selectedBookingId)
+  );
+
+  if (!booking) {
+    setMessage("Selected booking not found");
+    return;
+  }
+
+  try {
+    setStarting(true);
+    setMessage("");
+
+    const now = new Date();
+
+    const pad = (value) => String(value).padStart(2, "0");
+
+    const startTime =
+      `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ` +
+      `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+    const res = await api.post("/game-session", {
+      user_id: booking.user_id,
+      game_id: booking.game_id,
+      station_id: booking.station_id,
+      start_time: startTime,
+      amount: booking.amount || 0,
+      status: "active",
+      recording_status: "not_recorded",
+    });
+
+    if (res.data.success) {
+      setMessage("Game session started successfully");
+      setShowStart(false);
+      setSelectedBookingId("");
+
+      await fetchSessions();
+    } else {
+      setMessage(res.data.message || "Failed to start session");
+    }
+
+  } catch (err) {
+    console.error("Start Session Error:", err);
+
+    setMessage(
+      err.response?.data?.message ||
+      "Failed to start game session"
+    );
+
+  } finally {
+    setStarting(false);
+  }
+};
+
+const handleEnd = async (session) => {
+  const confirmEnd = window.confirm(
+    `End Session #${session.id} for ${session.user_name}?`
+  );
+
+  if (!confirmEnd) return;
+
+  try {
+    setMessage("");
+
+    const now = new Date();
+
+    const pad = (value) => String(value).padStart(2, "0");
+
+    const endTime =
+      `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ` +
+      `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+    const res = await api.put(`/game-session/${session.id}`, {
+      end_time: endTime,
+      status: "completed"
+    });
+
+    if (res.data.success) {
+      setMessage("Game session ended successfully");
+      await fetchSessions();
+    } else {
+      setMessage(
+        res.data.message || "Failed to end game session"
+      );
+    }
+
+  } catch (err) {
+    console.error("End Session Error:", err);
+
+    setMessage(
+      err.response?.data?.message ||
+      "Failed to end game session"
+    );
+  }
+};
 
   useEffect(() => {
     const load = async () => {
@@ -158,8 +242,22 @@ function GameSession() {
                 </div>
 
                 <div className="game-session-item-footer">
-                  <button className="view-session-btn" onClick={() => getById(sess.id)}>View Details</button>
-                </div>
+  <button
+    className="view-session-btn"
+    onClick={() => getById(sess.id)}
+  >
+    View Details
+  </button>
+
+  {canManage && sess.status === "active" && (
+    <button
+      className="end-session-btn"
+      onClick={() => handleEnd(sess)}
+    >
+      End Session
+    </button>
+  )}
+</div>
               </div>
             ))}
           </div>
