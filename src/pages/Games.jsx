@@ -6,16 +6,26 @@ import {
   Pencil,
   Trash2,
   X,
+  CalendarDays,
 } from "lucide-react";
 import api from "../api/axios";
 import "../styles/Games.css";
 
-function Games() {
+function Games({ setActivePage }) {
+  // --------------------------------------------------
+  // USER / ROLE
+  // --------------------------------------------------
+
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const role = user?.role_name || "Player";
 
-  const canManageGames = role === "Admin" || role === "Staff";
+  const canManageGames = role === "Admin";
   const canDeleteGames = role === "Admin";
+  const canBookGame = role === "Player" || role === "Staff";
+
+  // --------------------------------------------------
+  // STATE
+  // --------------------------------------------------
 
   const [games, setGames] = useState([]);
   const [platforms, setPlatforms] = useState([]);
@@ -28,8 +38,11 @@ function Games() {
   const [messageType, setMessageType] = useState("success");
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [viewGame, setViewGame] = useState(null);
+
   const [editingGame, setEditingGame] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const [formData, setFormData] = useState({
     game_name: "",
@@ -46,9 +59,10 @@ function Games() {
     game_type_id: "",
   });
 
-  // -----------------------------------------
-  // Show message
-  // -----------------------------------------
+  // --------------------------------------------------
+  // SHOW MESSAGE
+  // --------------------------------------------------
+
   const showMessage = (text, type = "success") => {
     setMessage(text);
     setMessageType(type);
@@ -58,9 +72,10 @@ function Games() {
     }, 3000);
   };
 
-  // -----------------------------------------
-  // Load games
-  // -----------------------------------------
+  // --------------------------------------------------
+  // LOAD GAMES
+  // --------------------------------------------------
+
   const loadGames = async () => {
     try {
       const res = await api.get("/games");
@@ -74,13 +89,15 @@ function Games() {
       }
     } catch (error) {
       console.error("Load games error:", error);
+
       showMessage("Failed to load games", "error");
     }
   };
 
-  // -----------------------------------------
-  // Initial load
-  // -----------------------------------------
+  // --------------------------------------------------
+  // INITIAL LOAD
+  // --------------------------------------------------
+
   useEffect(() => {
     let isMounted = true;
 
@@ -134,11 +151,12 @@ function Games() {
     };
   }, []);
 
-  // -----------------------------------------
-  // Search
-  // -----------------------------------------
+  // --------------------------------------------------
+  // SEARCH
+  // --------------------------------------------------
+
   const filtered = games.filter((game) => {
-    const searchText = filter.toLowerCase();
+    const searchText = filter.toLowerCase().trim();
 
     return (
       (game.game_name || "")
@@ -156,9 +174,52 @@ function Games() {
     );
   });
 
-  // -----------------------------------------
-  // Add game
-  // -----------------------------------------
+  // --------------------------------------------------
+  // VIEW GAME
+  // --------------------------------------------------
+
+  const handleViewGame = (game) => {
+    setViewGame(game);
+  };
+
+  const handleCloseViewModal = () => {
+    setViewGame(null);
+  };
+
+  // --------------------------------------------------
+  // BOOK GAME
+  // --------------------------------------------------
+
+  const handleBookGame = (game) => {
+    if (!game) return;
+
+    // Close game details modal
+    setViewGame(null);
+
+    /*
+      Store selected game temporarily so Booking page
+      can use it when it opens.
+    */
+    sessionStorage.setItem(
+      "selectedGameForBooking",
+      JSON.stringify({
+        id: game.id,
+        game_name: game.game_name || game.name,
+      })
+    );
+    sessionStorage.setItem("openCreateBooking", "true");
+
+
+    // Go to Booking page
+    if (setActivePage) {
+setActivePage("My Bookings");
+    }
+  };
+
+  // --------------------------------------------------
+  // ADD GAME
+  // --------------------------------------------------
+
   const handleAddGame = () => {
     setEditingGame(null);
 
@@ -180,9 +241,10 @@ function Games() {
     setModalOpen(true);
   };
 
-  // -----------------------------------------
-  // Edit game
-  // -----------------------------------------
+  // --------------------------------------------------
+  // EDIT GAME
+  // --------------------------------------------------
+
   const handleEditGame = (game) => {
     setEditingGame(game);
 
@@ -204,9 +266,10 @@ function Games() {
     setModalOpen(true);
   };
 
-  // -----------------------------------------
-  // Close modal
-  // -----------------------------------------
+  // --------------------------------------------------
+  // CLOSE ADD / EDIT MODAL
+  // --------------------------------------------------
+
   const handleCloseModal = () => {
     if (saving) return;
 
@@ -220,9 +283,10 @@ function Games() {
     });
   };
 
-  // -----------------------------------------
-  // Form change
-  // -----------------------------------------
+  // --------------------------------------------------
+  // FORM CHANGE
+  // --------------------------------------------------
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -239,9 +303,10 @@ function Games() {
     }
   };
 
-  // -----------------------------------------
-  // Save game
-  // -----------------------------------------
+  // --------------------------------------------------
+  // SAVE GAME
+  // --------------------------------------------------
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -294,9 +359,11 @@ function Games() {
 
       if (editingGame) {
         await api.put(`/games/${editingGame.id}`, payload);
+
         showMessage("Game updated successfully");
       } else {
         await api.post("/games", payload);
+
         showMessage("Game created successfully");
       }
 
@@ -309,7 +376,7 @@ function Games() {
 
       showMessage(
         error.response?.data?.message ||
-        "Failed to save game",
+          "Failed to save game",
         "error"
       );
     } finally {
@@ -317,9 +384,10 @@ function Games() {
     }
   };
 
-  // -----------------------------------------
-  // Delete game
-  // -----------------------------------------
+  // --------------------------------------------------
+  // DELETE GAME
+  // --------------------------------------------------
+
   const handleDeleteGame = async (game) => {
     if (!canDeleteGames) return;
 
@@ -328,6 +396,8 @@ function Games() {
     );
 
     if (!confirmed) return;
+
+    setDeleting(true);
 
     try {
       await api.delete(`/games/${game.id}`);
@@ -340,15 +410,18 @@ function Games() {
 
       showMessage(
         error.response?.data?.message ||
-        "Failed to delete game",
+          "Failed to delete game",
         "error"
       );
+    } finally {
+      setDeleting(false);
     }
   };
 
-  // -----------------------------------------
-  // Loading
-  // -----------------------------------------
+  // --------------------------------------------------
+  // LOADING
+  // --------------------------------------------------
+
   if (loading) {
     return (
       <div className="games-state">
@@ -358,12 +431,18 @@ function Games() {
     );
   }
 
+  // --------------------------------------------------
+  // UI
+  // --------------------------------------------------
+
   return (
     <div className="games-page">
 
       {/* PAGE HEADER */}
       <div className="games-page-header">
+
         <div className="games-heading">
+
           <h1>Games Library</h1>
 
           <p>
@@ -372,6 +451,7 @@ function Games() {
               ? " • Manage your catalog"
               : " • Browse available games"}
           </p>
+
         </div>
 
         <div className="games-header-actions">
@@ -394,6 +474,7 @@ function Games() {
           )}
 
         </div>
+
       </div>
 
       {/* MESSAGE */}
@@ -403,10 +484,11 @@ function Games() {
         </div>
       )}
 
-      {/* SEARCH BAR */}
+      {/* SEARCH */}
       <div className="games-toolbar">
 
         <div className="games-search">
+
           <Search size={16} />
 
           <input
@@ -415,6 +497,7 @@ function Games() {
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           />
+
         </div>
 
         <span className="games-results">
@@ -425,6 +508,7 @@ function Games() {
 
       {/* EMPTY STATE */}
       {filtered.length === 0 ? (
+
         <div className="games-empty">
 
           <div className="games-empty-icon">
@@ -451,6 +535,7 @@ function Games() {
           )}
 
         </div>
+
       ) : (
 
         <div className="games-grid">
@@ -461,44 +546,13 @@ function Games() {
               game.status || "active"
             ).toLowerCase();
 
+            {/* const isAvailable = status === "active"; */}
+
             return (
               <div
                 className="game-card"
                 key={game.id}
               >
-
-                {/* ACTION BUTTONS */}
-                {canManageGames && (
-                  <div className="game-card-action">
-
-                    {/* EDIT */}
-                    <button
-                      type="button"
-                      className="game-edit-btn"
-                      title="Edit Game"
-                      onClick={() =>
-                        handleEditGame(game)
-                      }
-                    >
-                      <Pencil size={14} />
-                    </button>
-
-                    {/* DELETE */}
-                    {canDeleteGames && (
-                      <button
-                        type="button"
-                        className="game-delete-btn"
-                        title="Delete Game"
-                        onClick={() =>
-                          handleDeleteGame(game)
-                        }
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    )}
-
-                  </div>
-                )}
 
                 {/* CARD TOP */}
                 <div className="game-card-top">
@@ -554,8 +608,8 @@ function Games() {
                 </div>
 
                 {/* CARD FOOTER */}
-                {/* CARD FOOTER */}
                 <div className="game-card-footer">
+
                   <span
                     className={
                       status === "active"
@@ -565,7 +619,9 @@ function Games() {
                           : "game-unavailable"
                     }
                   >
-                    <span className="game-status-dot">●</span>
+                    <span className="game-status-dot">
+                      ●
+                    </span>
 
                     {status === "active"
                       ? "Available"
@@ -574,19 +630,54 @@ function Games() {
                         : "Inactive"}
                   </span>
 
+                  {/* ADMIN */}
                   {canManageGames ? (
+
+                    <div className="game-actions">
+
+                      <button
+                        className="game-manage-btn"
+                        onClick={() =>
+                          handleEditGame(game)
+                        }
+                        title="Edit game"
+                        type="button"
+                      >
+                        <Pencil size={14} />
+                        Edit
+                      </button>
+
+                      {canDeleteGames && (
+                        <button
+                          className="game-delete-btn"
+                          onClick={() =>
+                            handleDeleteGame(game)
+                          }
+                          disabled={deleting}
+                          title="Delete game"
+                          type="button"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+
+                    </div>
+
+                  ) : (
+
+                    /* PLAYER / STAFF */
                     <button
                       type="button"
-                      className="game-manage-btn"
-                      onClick={() => handleEditGame(game)}
+                      className="game-view-btn"
+                      onClick={() =>
+                        handleViewGame(game)
+                      }
                     >
-                      Manage
-                    </button>
-                  ) : (
-                    <span className="game-view-label">
                       View
-                    </span>
+                    </button>
+
                   )}
+
                 </div>
 
               </div>
@@ -596,8 +687,12 @@ function Games() {
         </div>
       )}
 
-      {/* ADD / EDIT MODAL */}
+      {/* ==================================================
+          ADD / EDIT GAME MODAL
+      ================================================== */}
+
       {modalOpen && (
+
         <div
           className="games-modal-overlay"
           onMouseDown={(e) => {
@@ -675,7 +770,7 @@ function Games() {
 
               </div>
 
-              {/* PLATFORM + GAME TYPE */}
+              {/* PLATFORM + TYPE */}
               <div className="games-form-row">
 
                 <div className="games-form-group">
@@ -690,6 +785,7 @@ function Games() {
                     onChange={handleChange}
                     disabled={saving}
                   >
+
                     <option value="">
                       Select platform
                     </option>
@@ -707,6 +803,7 @@ function Games() {
                           {platform.name}
                         </option>
                       ))}
+
                   </select>
 
                   {formErrors.platform_id && (
@@ -729,6 +826,7 @@ function Games() {
                     onChange={handleChange}
                     disabled={saving}
                   >
+
                     <option value="">
                       Select game type
                     </option>
@@ -746,6 +844,7 @@ function Games() {
                           {gameType.type_name}
                         </option>
                       ))}
+
                   </select>
 
                   {formErrors.game_type_id && (
@@ -790,6 +889,7 @@ function Games() {
                     onChange={handleChange}
                     disabled={saving}
                   >
+
                     <option value="active">
                       Active
                     </option>
@@ -797,6 +897,7 @@ function Games() {
                     <option value="inactive">
                       Inactive
                     </option>
+
                   </select>
 
                 </div>
@@ -852,6 +953,161 @@ function Games() {
           </div>
 
         </div>
+      )}
+
+      {/* ==================================================
+          PLAYER / STAFF GAME DETAILS MODAL
+      ================================================== */}
+
+      {viewGame && (
+
+        <div
+          className="games-modal-overlay"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) {
+              handleCloseViewModal();
+            }
+          }}
+        >
+
+          <div
+            className="games-modal games-view-modal"
+            onMouseDown={(e) =>
+              e.stopPropagation()
+            }
+          >
+
+            {/* HEADER */}
+            <div className="games-modal-header">
+
+              <div>
+
+                <h2>
+                  Game Details
+                </h2>
+
+                <p>
+                  View game information
+                </p>
+
+              </div>
+
+              <button
+                type="button"
+                className="games-modal-close"
+                onClick={handleCloseViewModal}
+                title="Close"
+              >
+                <X size={18} />
+              </button>
+
+            </div>
+
+            {/* GAME DETAILS */}
+            <div className="games-view-content">
+
+              <div className="games-view-icon">
+                <Gamepad2 size={26} />
+              </div>
+
+              <h3>
+                {viewGame.game_name ||
+                  viewGame.name}
+              </h3>
+
+              <span
+                className={`game-status game-status-${(
+                  viewGame.status || "active"
+                ).toLowerCase()}`}
+              >
+                {viewGame.status || "active"}
+              </span>
+
+              <div className="games-view-details">
+
+                <div>
+                  <span>Game ID</span>
+                  <strong>
+                    #{viewGame.id}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>Platform</span>
+                  <strong>
+                    {viewGame.platform_name ||
+                      "PC / Console"}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>Game Type</span>
+                  <strong>
+                    {viewGame.game_type_name ||
+                      "-"}
+                  </strong>
+                </div>
+
+                <div>
+                  <span>Genre</span>
+                  <strong>
+                    {viewGame.genre || "-"}
+                  </strong>
+                </div>
+
+              </div>
+
+              {viewGame.description && (
+
+                <div className="games-view-description">
+
+                  <span>
+                    Description
+                  </span>
+
+                  <p>
+                    {viewGame.description}
+                  </p>
+
+                </div>
+
+              )}
+
+            </div>
+
+            {/* ACTIONS */}
+            <div className="games-form-actions">
+
+              <button
+                type="button"
+                className="games-cancel-btn"
+                onClick={handleCloseViewModal}
+              >
+                Close
+              </button>
+
+              {canBookGame &&
+                viewGame.status === "active" && (
+
+                  <button
+                    type="button"
+                    className="games-save-btn"
+                    onClick={() =>
+                      handleBookGame(viewGame)
+                    }
+                  >
+                    <CalendarDays size={16} />
+                    Book Now
+                  </button>
+
+                )}
+
+            </div>
+
+          </div>
+
+        </div>
+
       )}
 
     </div>

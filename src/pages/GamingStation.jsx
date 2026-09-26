@@ -952,14 +952,15 @@ const [modalError, setModalError] = useState("");
                             {/* STATION NAME */}
 
                             <div className="station-form-group">
-                                <label>
+                                <label htmlFor="station_name">
                                     Station Name
                                     <span>*</span>
                                 </label>
 
                                 <input
-                                    type="text"
+                                    id="station_name"
                                     name="station_name"
+                                    type="text"
                                     value={
                                         formData.station_name
                                     }
@@ -982,7 +983,7 @@ const [modalError, setModalError] = useState("");
                             {/* PLATFORM */}
 
                             <div className="station-form-group">
-                                <label>
+                                <label htmlFor="platform_id">
                                     Platform
                                     <span>*</span>
                                 </label>
@@ -1165,7 +1166,7 @@ const [modalError, setModalError] = useState("");
                                 "maintenance" && (
                                 <div className="station-form-group">
 
-                                    <label>
+                                    <label htmlFor="maintenance_date">
                                         <CalendarDays size={13} />
                                         Maintenance Date
                                         <span>*</span>

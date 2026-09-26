@@ -7,6 +7,7 @@ import {
   Pencil,
   Trash2,
   X,
+  Plus,
 } from "lucide-react";
 import api from "../api/axios";
 import "../styles/Memberships.css";
@@ -15,7 +16,7 @@ function Memberships() {
   const [memberships, setMemberships] = useState([]);
   const [players, setPlayers] = useState([]);
   const [membershipTypes, setMembershipTypes] = useState([]);
-
+const [myMembership, setMyMembership] = useState(null);
   const [filter, setFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -31,6 +32,8 @@ function Memberships() {
   const [formData, setFormData] = useState({
     user_id: "",
     membership_type_id: "",
+    start_date: "",
+    end_date: "",
     status: "active",
     auto_renew: false,
   });
@@ -50,8 +53,9 @@ function Memberships() {
   const user = getStoredUser();
   const role = user.role_name || user.role || "";
 
-  const canManage = role === "Admin" || role === "Staff";
-  const canDelete = role === "Admin";
+  const canManage = role === "Admin";
+const canDelete = role === "Admin";
+const isPlayer = role === "Player";
 
   // =====================================================
   // LOAD MEMBERSHIPS
@@ -62,7 +66,9 @@ function Memberships() {
       const res = await api.get("/memberships");
 
       if (res.data.success) {
-        setMemberships(res.data.memberships || res.data.data || []);
+        setMemberships(
+          res.data.memberships || res.data.data || []
+        );
       } else if (Array.isArray(res.data)) {
         setMemberships(res.data);
       } else {
@@ -73,9 +79,8 @@ function Memberships() {
 
       setMessage(
         error.response?.data?.message ||
-        "Failed to load memberships"
+          "Failed to load memberships"
       );
-
       setMessageType("error");
     }
   };
@@ -91,8 +96,8 @@ function Memberships() {
       if (res.data.success) {
         setPlayers(
           res.data.data ||
-          res.data.players ||
-          []
+            res.data.players ||
+            []
         );
       } else if (Array.isArray(res.data)) {
         setPlayers(res.data);
@@ -116,8 +121,8 @@ function Memberships() {
       if (res.data.success) {
         setMembershipTypes(
           res.data.data ||
-          res.data.membershipTypes ||
-          []
+            res.data.membershipTypes ||
+            []
         );
       } else if (Array.isArray(res.data)) {
         setMembershipTypes(res.data);
@@ -135,33 +140,62 @@ function Memberships() {
   };
 
   // =====================================================
+// LOAD MY MEMBERSHIP - PLAYER
+// =====================================================
+
+const loadMyMembership = async () => {
+  try {
+    const res = await api.get(
+      "/memberships/my-membership"
+    );
+
+    if (
+      res.data.success &&
+      res.data.membership
+    ) {
+      setMyMembership(res.data.membership);
+    } else {
+      setMyMembership(null);
+    }
+  } catch (error) {
+    console.error(
+      "Load my membership error:",
+      error
+    );
+
+    setMyMembership(null);
+  }
+};
+
+  // =====================================================
   // INITIAL LOAD
   // =====================================================
 
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
+ useEffect(() => {
+  const loadData = async () => {
+    setLoading(true);
 
+    if (isPlayer) {
+      await loadMyMembership();
+    } else {
       await Promise.all([
         loadMemberships(),
         loadPlayers(),
         loadMembershipTypes(),
       ]);
+    }
 
-      setLoading(false);
-    };
+    setLoading(false);
+  };
 
-    loadData();
-  }, []);
+  loadData();
+}, [isPlayer]);
 
   // =====================================================
   // MESSAGE
   // =====================================================
 
-  const showMessage = (
-    text,
-    type = "success"
-  ) => {
+  const showMessage = (text, type = "success") => {
     setMessage(text);
     setMessageType(type);
 
@@ -178,11 +212,33 @@ function Memberships() {
     setFormData({
       user_id: "",
       membership_type_id: "",
+      start_date: "",
+      end_date: "",
       status: "active",
       auto_renew: false,
     });
 
     setModalError("");
+  };
+
+  // =====================================================
+  // OPEN ADD MODAL
+  // =====================================================
+
+  const handleAddMembership = () => {
+    setEditingMembership(null);
+
+    setFormData({
+      user_id: "",
+      membership_type_id: "",
+      start_date: "",
+      end_date: "",
+      status: "active",
+      auto_renew: false,
+    });
+
+    setModalError("");
+    setModalOpen(true);
   };
 
   // =====================================================
@@ -208,12 +264,26 @@ function Memberships() {
         user_id: data.user_id
           ? String(data.user_id)
           : "",
+
         membership_type_id: data.membership_type_id
           ? String(data.membership_type_id)
           : "",
+
+        // Loaded for state only.
+        // These dates are NOT sent during edit.
+        start_date: data.start_date
+          ? String(data.start_date).substring(0, 10)
+          : "",
+
+        end_date: data.end_date
+          ? String(data.end_date).substring(0, 10)
+          : data.expiry_date
+            ? String(data.expiry_date).substring(0, 10)
+            : "",
+
         status: data.status || "active",
-        auto_renew:
-          Boolean(data.auto_renew),
+
+        auto_renew: Boolean(data.auto_renew),
       });
 
       setModalOpen(true);
@@ -225,7 +295,7 @@ function Memberships() {
 
       showMessage(
         error.response?.data?.message ||
-        "Failed to load membership details",
+          "Failed to load membership details",
         "error"
       );
     }
@@ -272,12 +342,20 @@ function Memberships() {
       return false;
     }
 
+    // Start date is required only while adding
+    if (!editingMembership && !formData.start_date) {
+      setModalError("Please select a start date.");
+      return false;
+    }
+
     if (
       !["active", "expired", "cancelled"].includes(
         formData.status
       )
     ) {
-      setModalError("Please select a valid status.");
+      setModalError(
+        "Please select a valid status."
+      );
       return false;
     }
 
@@ -286,7 +364,7 @@ function Memberships() {
   };
 
   // =====================================================
-  // SAVE MEMBERSHIP
+  // SAVE / CREATE / UPDATE MEMBERSHIP
   // =====================================================
 
   const handleSubmit = async (e) => {
@@ -296,36 +374,63 @@ function Memberships() {
       return;
     }
 
-    if (!editingMembership) {
-      return;
-    }
-
     setSaving(true);
     setModalError("");
 
     try {
-      const payload = {
-        user_id: formData.user_id,
-        membership_type_id: formData.membership_type_id,
-        start_date: formData.start_date
-          ? String(formData.start_date).substring(0, 10)
-          : "",
-        end_date: formData.end_date
-          ? String(formData.end_date).substring(0, 10)
-          : "",
-        status: formData.status,
-        auto_renew: formData.auto_renew,
-      };
+      // =================================================
+      // ADD MEMBERSHIP
+      // =================================================
 
-      await api.put(
-        `/memberships/${editingMembership.id}`,
-        payload
-      );
+      if (!editingMembership) {
+        const payload = {
+          user_id: formData.user_id,
+          membership_type_id:
+            formData.membership_type_id,
+          start_date: formData.start_date,
+          auto_renew: formData.auto_renew,
+        };
 
-      showMessage(
-        "Membership updated successfully",
-        "success"
-      );
+        await api.post(
+          "/memberships",
+          payload
+        );
+
+        showMessage(
+          "Membership created successfully",
+          "success"
+        );
+      }
+
+      // =================================================
+      // UPDATE MEMBERSHIP
+      // =================================================
+
+      else {
+        // IMPORTANT:
+        // Do NOT send start_date or end_date here.
+        //
+        // Existing membership dates should remain
+        // unchanged during normal edit.
+
+        const payload = {
+          user_id: formData.user_id,
+          membership_type_id:
+            formData.membership_type_id,
+          status: formData.status,
+          auto_renew: formData.auto_renew,
+        };
+
+        await api.put(
+          `/memberships/${editingMembership.id}`,
+          payload
+        );
+
+        showMessage(
+          "Membership updated successfully",
+          "success"
+        );
+      }
 
       setModalOpen(false);
       setEditingMembership(null);
@@ -334,7 +439,9 @@ function Memberships() {
       await loadMemberships();
     } catch (error) {
       console.error(
-        "Save membership error:",
+        editingMembership
+          ? "Update membership error:"
+          : "Create membership error:",
         error
       );
 
@@ -345,7 +452,11 @@ function Memberships() {
 
       setModalError(
         error.response?.data?.message ||
-        "Failed to update membership"
+          (
+            editingMembership
+              ? "Failed to update membership"
+              : "Failed to create membership"
+          )
       );
     } finally {
       setSaving(false);
@@ -388,7 +499,7 @@ function Memberships() {
 
       showMessage(
         error.response?.data?.message ||
-        "Failed to delete membership",
+          "Failed to delete membership",
         "error"
       );
     } finally {
@@ -495,6 +606,177 @@ function Memberships() {
     );
   }
 
+  if (isPlayer) {
+  return (
+    <div className="memberships-page">
+
+      <div className="memberships-header">
+        <div>
+          <h1>My Membership</h1>
+
+          <p>
+            View your current GameZone membership.
+          </p>
+        </div>
+
+        <div className="memberships-header-actions">
+          <div className="memberships-count">
+            <Crown size={14} />
+
+            <strong>
+              {myMembership ? "1" : "0"}
+            </strong>
+
+            <span>
+              Membership
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {!myMembership ? (
+        <div className="memberships-empty">
+
+          <Crown size={30} />
+
+          <h3>
+            No Active Membership
+          </h3>
+
+          <p>
+            You currently do not have an active
+            membership.
+          </p>
+
+        </div>
+      ) : (
+        <div className="memberships-grid">
+
+          <div className="membership-card">
+
+            <div className="membership-card-top">
+
+              <div className="membership-icon">
+                <Crown size={20} />
+              </div>
+
+              <div className="membership-card-top-right">
+
+                <span className="membership-id">
+                  #{myMembership.id}
+                </span>
+
+                <span
+                  className={`membership-status ${
+                    myMembership.status || "active"
+                  }`}
+                >
+                  {myMembership.status || "active"}
+                </span>
+
+              </div>
+
+            </div>
+
+            <h3>
+              {myMembership.membership_type_name ||
+                myMembership.type_name ||
+                "Membership"}
+            </h3>
+
+            <div className="membership-price">
+              ₹{myMembership.price || "0.00"}
+              <span>/month</span>
+            </div>
+
+            <div className="membership-user">
+              <User size={14} />
+
+              <span>
+                {myMembership.user_name ||
+                  myMembership.full_name ||
+                  user.full_name ||
+                  user.name ||
+                  "My Account"}
+              </span>
+            </div>
+
+            <div className="membership-details">
+
+              <div className="membership-detail-row">
+
+                <span>
+                  <CalendarDays size={12} />
+                  Start Date
+                </span>
+
+                <strong>
+                  {myMembership.start_date
+                    ? new Date(
+                        myMembership.start_date
+                      ).toLocaleDateString("en-IN")
+                    : "N/A"}
+                </strong>
+
+              </div>
+
+              <div className="membership-detail-row">
+
+                <span>
+                  <CalendarDays size={12} />
+                  End Date
+                </span>
+
+                <strong>
+                  {myMembership.expiry_date
+                    ? new Date(
+                        myMembership.expiry_date
+                      ).toLocaleDateString("en-IN")
+                    : "N/A"}
+                </strong>
+
+              </div>
+
+              <div className="membership-detail-row">
+
+                <span>
+                  Auto Renew
+                </span>
+
+                <strong
+                  className={
+                    myMembership.auto_renew
+                      ? "yes"
+                      : "no"
+                  }
+                >
+                  {myMembership.auto_renew
+                    ? "Enabled"
+                    : "Disabled"}
+                </strong>
+
+              </div>
+
+            </div>
+
+            <div className="membership-card-footer">
+
+              <span>
+                {getStatusLabel(
+                  myMembership.status
+                )}
+              </span>
+
+            </div>
+
+          </div>
+
+        </div>
+      )}
+
+    </div>
+  );
+}
   // =====================================================
   // UI
   // =====================================================
@@ -505,6 +787,7 @@ function Memberships() {
       {/* HEADER */}
 
       <div className="memberships-header">
+
         <div>
           <h1>Memberships</h1>
 
@@ -516,15 +799,31 @@ function Memberships() {
           </p>
         </div>
 
-        <div className="memberships-count">
-          <Crown size={14} />
+        <div className="memberships-header-actions">
 
-          <strong>
-            {activeCount}
-          </strong>
+          <div className="memberships-count">
+            <Crown size={14} />
 
-          <span>Active</span>
+            <strong>
+              {activeCount}
+            </strong>
+
+            <span>Active</span>
+          </div>
+
+          {canManage && (
+            <button
+              className="membership-add-btn"
+              type="button"
+              onClick={handleAddMembership}
+            >
+              <Plus size={16} />
+              Add Membership
+            </button>
+          )}
+
         </div>
+
       </div>
 
       {/* MESSAGE */}
@@ -574,6 +873,7 @@ function Memberships() {
 
       {filtered.length === 0 ? (
         <div className="memberships-empty">
+
           <Crown size={30} />
 
           <h3>
@@ -587,6 +887,7 @@ function Memberships() {
               ? "No memberships match your search."
               : "No membership records are available."}
           </p>
+
         </div>
       ) : (
 
@@ -616,12 +917,11 @@ function Memberships() {
                   </span>
 
                   <span
-                    className={`membership-status ${membership.status ||
-                      "active"
-                      }`}
+                    className={`membership-status ${
+                      membership.status || "active"
+                    }`}
                   >
-                    {membership.status ||
-                      "active"}
+                    {membership.status || "active"}
                   </span>
 
                 </div>
@@ -639,7 +939,6 @@ function Memberships() {
 
               <div className="membership-price">
                 ₹{membership.price || "0.00"}
-
                 <span>/month</span>
               </div>
 
@@ -669,10 +968,10 @@ function Memberships() {
                   <strong>
                     {membership.start_date
                       ? new Date(
-                        membership.start_date
-                      ).toLocaleDateString(
-                        "en-IN"
-                      )
+                          membership.start_date
+                        ).toLocaleDateString(
+                          "en-IN"
+                        )
                       : "N/A"}
                   </strong>
 
@@ -688,10 +987,10 @@ function Memberships() {
                   <strong>
                     {membership.expiry_date
                       ? new Date(
-                        membership.expiry_date
-                      ).toLocaleDateString(
-                        "en-IN"
-                      )
+                          membership.expiry_date
+                        ).toLocaleDateString(
+                          "en-IN"
+                        )
                       : "N/A"}
                   </strong>
 
@@ -730,6 +1029,7 @@ function Memberships() {
                 </span>
 
                 {canManage && (
+
                   <div className="membership-actions">
 
                     <button
@@ -740,6 +1040,7 @@ function Memberships() {
                         )
                       }
                       title="Edit membership"
+                      type="button"
                     >
                       <Pencil size={14} />
                       Edit
@@ -755,6 +1056,7 @@ function Memberships() {
                         }
                         disabled={deleting}
                         title="Delete membership"
+                        type="button"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -772,9 +1074,10 @@ function Memberships() {
         </div>
       )}
 
-      {/* EDIT MODAL */}
+      {/* ADD / EDIT MODAL */}
 
       {modalOpen && (
+
         <div
           className="membership-modal-overlay"
           onMouseDown={(e) => {
@@ -802,14 +1105,19 @@ function Memberships() {
             <div className="membership-modal-header">
 
               <div>
+
                 <h2>
-                  Edit Membership
+                  {editingMembership
+                    ? "Edit Membership"
+                    : "Add Membership"}
                 </h2>
 
                 <p>
-                  Update membership information
-                  and status.
+                  {editingMembership
+                    ? "Update membership information and status."
+                    : "Create a new membership for a player."}
                 </p>
+
               </div>
 
               <button
@@ -900,6 +1208,27 @@ function Memberships() {
 
               </div>
 
+              {/* START DATE - ADD ONLY */}
+
+              {!editingMembership && (
+                <div className="membership-form-group">
+
+                  <label>
+                    Start Date
+                    <span>*</span>
+                  </label>
+
+                  <input
+                    type="date"
+                    name="start_date"
+                    value={formData.start_date}
+                    onChange={handleChange}
+                    disabled={saving}
+                  />
+
+                </div>
+              )}
+
               {/* STATUS + AUTO RENEW */}
 
               <div className="membership-form-row">
@@ -914,7 +1243,10 @@ function Memberships() {
                     name="status"
                     value={formData.status}
                     onChange={handleChange}
-                    disabled={saving}
+                    disabled={
+                      saving ||
+                      !editingMembership
+                    }
                   >
                     <option value="active">
                       Active
@@ -988,7 +1320,9 @@ function Memberships() {
                       Saving...
                     </>
                   ) : (
-                    "Update Membership"
+                    editingMembership
+                      ? "Update Membership"
+                      : "Add Membership"
                   )}
                 </button>
 

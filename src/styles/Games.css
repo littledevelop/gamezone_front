@@ -93,7 +93,7 @@
     gap: 6px;
     font-family: inherit;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
     transition:
         background 0.2s ease,
@@ -890,6 +890,7 @@
 .games-cancel-btn {
     background: #ffffff;
     color: #475569;
+    margin:10px;
     border: 1px solid #dde4ec;
 }
 
@@ -1057,4 +1058,147 @@
     font-size: 12.5px;
     font-weight: 700;
     color: #64748b;
+}
+
+/* =========================================
+   ACTIONS
+========================================= */
+
+.game-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.game-manage-btn,
+.game-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.18s ease;
+}
+
+.game-manage-btn {
+  padding: 5px 8px;
+  background: transparent;
+  color: #070A3A;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.game-manage-btn:hover {
+  background: #F1F5F9;
+}
+
+.game-manage-btn:focus-visible {
+  outline: 2px solid #7CFF3A;
+  outline-offset: 2px;
+}
+
+.game-delete-btn {
+  width: 29px;
+  height: 29px;
+  background: transparent;
+  color: #DC2626;
+}
+
+.game-delete-btn:hover {
+  background: #FEF2F2;
+}
+
+.game-delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.games-view-modal {
+  max-width: 520px;
+}
+
+.games-view-content {
+  padding: 24px 0 8px;
+  text-align: center;
+}
+
+.games-view-icon {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #070A3A;
+  color: #7CFF3A;
+  border-radius: 14px;
+}
+
+.games-view-content h3 {
+  margin: 0 0 10px;
+  color: #0F172A;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.games-view-details {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 22px;
+  text-align: left;
+}
+
+.games-view-details > div {
+margin:10px;
+  padding: 12px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+}
+
+.games-view-details span,
+.games-view-description > span {
+  display: block;
+  margin-bottom: 4px;
+  color: #94A3B8;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.games-view-details strong {
+  color: #0F172A;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.games-view-description {
+  margin: 10px;
+  padding: 14px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  text-align: left;
+}
+
+.games-view-description p {
+  margin: 0;
+  color: #64748B;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.game-view-btn {
+  border: none;
+  background: transparent;
+  color: #070A3A;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.game-view-btn:hover {
+  text-decoration: underline;
 }

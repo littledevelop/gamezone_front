@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
@@ -9,108 +8,158 @@ import Booking from "../pages/Booking";
 import GameSession from "../pages/GameSession";
 import Payments from "../pages/Payments";
 import DashboardHome from "../pages/DashboardHome";
+import Camera from "../pages/Camera";
 import "../styles/Dashboard.css";
 
 function Dashboard({ onLogout }) {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    const role = user?.role_name;
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const role = user?.role_name;
 
-    const [activePage, setActivePage] = useState("Dashboard");
-    const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activePage, setActivePage] = useState("Dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-    const menuItems = [
-        "Dashboard",
-        "Games",
-        "Gaming Station",
-        "Memberships",
-        "Bookings",
-        "Game Session",
-        "Payments"
-    ];
+  // --------------------------------------------------
+  // ROLE BASED MENU
+  // --------------------------------------------------
 
-    const roleMenuItems = {
-        Admin: menuItems,
-        Staff: menuItems,
-        Player: [
-            "Dashboard",
-            "Games",
-            "Bookings",
-            "Game Session",
-        ],
-    };
+  const roleMenuItems = {
+    Admin: [
+      "Dashboard",
+      "Games",
+      "Gaming Station",
+      "Cameras",
+      "Memberships",
+      "Bookings",
+      "Game Session",
+      "Payments",
+      "Recordings",
+      "Profile",
+    ],
 
-    const visibleMenuItems = roleMenuItems[role] || [];
+    Staff: [
+      "Dashboard",
+      "Games",
+      "Gaming Station",
+      "Cameras",
+      "Memberships",
+      "Bookings",
+      "Game Session",
+      "Payments",
+      "Recordings",
+      "Profile",
+    ],
 
-    const handlePageChange = (page) => {
-        setActivePage(page);
-        setSidebarOpen(false);
-    };
+    Player: [
+      "Dashboard",
+      "Games",
+      "My Bookings",
+      "My Membership",
+      "My Game Sessions",
+      "My Payments",
+      "My Recordings",
+      "Profile",
+    ],
+  };
 
-    const renderPage = () => {
-        switch (activePage) {
-            case "Dashboard":
-                return (
-                    <DashboardHome
-                        user={user}
-                        setActivePage={handlePageChange}
-                    />
-                );
+  const visibleMenuItems = roleMenuItems[role] || [];
 
-            case "Games":
-                return <GamesPage />;
+  // --------------------------------------------------
+  // PAGE CHANGE
+  // --------------------------------------------------
 
-            case "Gaming Station":
-                return <GamingStation />;
+  const handlePageChange = (page) => {
+    setActivePage(page);
+    setSidebarOpen(false);
+  };
 
-            case "Memberships":
-                return <Memberships />;
+  // --------------------------------------------------
+  // RENDER PAGE
+  // --------------------------------------------------
 
-            case "Bookings":
-                return <Booking />;
+  const renderPage = () => {
+    switch (activePage) {
+      case "Dashboard":
+        return <DashboardHome user={user} setActivePage={handlePageChange} />;
 
-            case "Game Session":
-                return <GameSession />;
+      case "Games":
+        return <GamesPage setActivePage={handlePageChange} />;
 
-            case "Payments":
-                return <Payments />;
+      case "Gaming Station":
+        return <GamingStation />;
 
-            default:
-                return (
-                    <div className="empty-state">
-                        <h3>Page not available</h3>
-                        <p>This page is not available yet.</p>
-                    </div>
-                );
-        }
-    };
+      case "Cameras":
+        return <Camera />;
 
-    return (
-        <div className="app">
-            <div className="app-layout">
+      case "Memberships":
+      case "My Membership":
+        return <Memberships />;
 
-                <Sidebar
-                    activePage={activePage}
-                    setActivePage={handlePageChange}
-                    visibleMenuItems={visibleMenuItems}
-                    onLogout={onLogout}
-                    sidebarOpen={sidebarOpen}
-                    setSidebarOpen={setSidebarOpen}
-                />
+      case "Bookings":
+        return <Booking pageType="Bookings" setActivePage={handlePageChange} />;
 
-                <div className="main-wrapper">
+      case "My Bookings":
+        return (
+          <Booking pageType="My Bookings" setActivePage={handlePageChange} />
+        );
+      case "Game Session":
+      case "My Game Sessions":
+        return <GameSession />;
 
-                    <Navbar
-                        onMenuClick={() => setSidebarOpen(true)}
-                    />
+      case "Payments":
+      case "My Payments":
+        return <Payments />;
 
-                    <main className="page-content">
-                        {renderPage()}
-                    </main>
+      case "Recordings":
+      case "My Recordings":
+        return (
+          <div className="empty-state">
+            <h3>Recordings</h3>
+            <p>Gameplay recordings will appear here.</p>
+          </div>
+        );
 
-                </div>
-            </div>
+      case "Profile":
+        return (
+          <div className="empty-state">
+            <h3>Profile</h3>
+            <p>Profile page will appear here.</p>
+          </div>
+        );
+
+      default:
+        return (
+          <div className="empty-state">
+            <h3>Page not available</h3>
+            <p>This page is not available yet.</p>
+          </div>
+        );
+    }
+  };
+
+  // --------------------------------------------------
+  // UI
+  // --------------------------------------------------
+
+  return (
+    <div className="app">
+      <div className="app-layout">
+        <Sidebar
+          activePage={activePage}
+          setActivePage={handlePageChange}
+          visibleMenuItems={visibleMenuItems}
+          onLogout={onLogout}
+          sidebarOpen={sidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+        />
+
+        <div className="main-wrapper">
+          <Navbar onMenuClick={() => setSidebarOpen(true)} />
+
+          <main className="page-content">{renderPage()}</main>
         </div>
-    );
+      </div>
+    </div>
+  );
 }
 
 export default Dashboard;

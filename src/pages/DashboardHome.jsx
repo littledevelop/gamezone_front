@@ -29,6 +29,12 @@ function DashboardHome({ user, setActivePage }) {
     const [activeSessionList, setActiveSessionList] = useState([]);
     const [membership, setMembership] = useState(null);
     const [todayGamingMinutes, setTodayGamingMinutes] = useState(0);
+
+
+    // =========================================================
+    // LOAD DASHBOARD DATA
+    // =========================================================
+
     useEffect(() => {
 
         const loadStats = async () => {
@@ -39,182 +45,327 @@ function DashboardHome({ user, setActivePage }) {
                 const stations = await api.get("/gaming-stations");
                 const sessions = await api.get("/game-session");
                 const bookings = await api.get("/booking");
-                // ================================
+
+
+                // =================================================
                 // PREPARE API DATA
-                // ================================
+                // =================================================
 
-                const sessionData = sessions.data.data || [];
-                const bookingData = bookings.data.bookings || [];
-                const stationData = stations.data.data || [];
+                const sessionData =
+                    sessions.data.data || [];
 
-                setBookingList(bookingData);
+                const bookingData =
+                    bookings.data.bookings || [];
+
+                const stationData =
+                    stations.data.data || [];
+
+
+                // =================================================
+                // PLAYER BOOKING FILTER
+                // =================================================
+
+                const currentBookingData =
+                    role === "Player"
+                        ? bookingData.filter(
+                            (booking) =>
+                                Number(booking.user_id) ===
+                                Number(user?.id)
+                        )
+                        : bookingData;
+
+
+                setBookingList(currentBookingData);
                 setStationList(stationData);
+
+
+                // =================================================
+                // MEMBERSHIP
+                // =================================================
 
                 let membershipData = null;
 
                 if (role === "Player") {
-                    try {
-                        const membershipResponse = await api.get(
-                            "/memberships/my-membership"
-                        );
 
-                        membershipData = membershipResponse.data.membership || null;
+                    try {
+
+                        const membershipResponse =
+                            await api.get(
+                                "/memberships/my-membership"
+                            );
+
+                        membershipData =
+                            membershipResponse.data.membership ||
+                            null;
+
                     } catch (error) {
+
                         console.error(
                             "Membership API ERROR:",
-                            error.response?.data || error.message
+                            error.response?.data ||
+                            error.message
                         );
+
                     }
+
                 }
 
                 setMembership(membershipData);
 
-                // ================================
+
+                // =================================================
                 // TODAY'S BOOKINGS
-                // ================================
+                // =================================================
 
                 const today = new Date();
 
-                const todayBookings = bookingData.filter((booking) => {
+                const todayBookings =
+                    currentBookingData.filter((booking) => {
 
-                    if (!booking.booking_date) {
-                        return false;
-                    }
+                        if (!booking.booking_date) {
+                            return false;
+                        }
 
-                    const bookingDate = new Date(
-                        booking.booking_date
-                    );
+                        const bookingDate =
+                            new Date(booking.booking_date);
 
-                    return (
-                        bookingDate.getDate() === today.getDate() &&
-                        bookingDate.getMonth() === today.getMonth() &&
-                        bookingDate.getFullYear() === today.getFullYear()
-                    );
-                });
+                        return (
+                            bookingDate.getDate() ===
+                            today.getDate() &&
 
-                // ================================
+                            bookingDate.getMonth() ===
+                            today.getMonth() &&
+
+                            bookingDate.getFullYear() ===
+                            today.getFullYear()
+                        );
+
+                    });
+
+
+                // =================================================
                 // ACTIVE SESSIONS
-                // ================================
+                // =================================================
 
-                const activeSessions = sessionData.filter(
-                    (session) => session.status === "active"
-                );
+                const activeSessions =
+                    sessionData.filter(
+                        (session) =>
+                            session.status === "active"
+                    );
+
+
+                // =================================================
+                // TODAY'S GAMING TIME
+                // =================================================
 
                 const now = new Date();
 
                 const startOfToday = new Date();
-                startOfToday.setHours(0, 0, 0, 0);
+
+                startOfToday.setHours(
+                    0,
+                    0,
+                    0,
+                    0
+                );
 
                 let gamingMinutes = 0;
 
+
                 sessionData
-                    .filter((session) => session.user_id === user?.id)
+
+                    .filter(
+                        (session) =>
+                            Number(session.user_id) ===
+                            Number(user?.id)
+                    )
+
                     .forEach((session) => {
 
                         if (!session.start_time) {
                             return;
                         }
 
-                        const sessionStart = new Date(session.start_time);
+                        const sessionStart =
+                            new Date(
+                                session.start_time
+                            );
+
 
                         const sessionEnd =
                             session.status === "active"
                                 ? now
                                 : session.end_time
-                                    ? new Date(session.end_time)
+                                    ? new Date(
+                                        session.end_time
+                                    )
                                     : null;
+
 
                         if (!sessionEnd) {
                             return;
                         }
 
+
                         // Ignore sessions that ended before today
-                        if (sessionEnd <= startOfToday) {
+
+                        if (
+                            sessionEnd <=
+                            startOfToday
+                        ) {
                             return;
                         }
 
+
                         // If session started before today,
                         // count only from today's midnight.
+
                         const effectiveStart =
-                            sessionStart < startOfToday
+                            sessionStart <
+                                startOfToday
                                 ? startOfToday
                                 : sessionStart;
 
+
                         const duration =
-                            (sessionEnd - effectiveStart) / (1000 * 60);
+                            (
+                                sessionEnd -
+                                effectiveStart
+                            ) /
+                            (1000 * 60);
+
 
                         if (duration > 0) {
                             gamingMinutes += duration;
                         }
+
                     });
 
-                setTodayGamingMinutes(Math.round(gamingMinutes));
 
-                // ================================
+                setTodayGamingMinutes(
+                    Math.round(gamingMinutes)
+                );
+
+
+                // =================================================
                 // AVAILABLE STATIONS
-                // ================================
+                // =================================================
 
-                const availableStations = stationData.filter(
-                    (station) => station.status === "available"
-                ).length;
+                const availableStations =
+                    stationData.filter(
+                        (station) =>
+                            station.status ===
+                            "available"
+                    ).length;
 
-                // ================================
+
+                // =================================================
                 // SET STATS
-                // ================================
+                // =================================================
 
                 setStats({
-                    games: games.data.count || 0,
 
-                    stations: stationData.length,
+                    games:
+                        games.data.count || 0,
 
-                    activeSessions: activeSessions.length,
+                    stations:
+                        stationData.length,
 
-                    todayBookings: todayBookings.length,
+                    activeSessions:
+                        activeSessions.length,
 
-                    availableStations: availableStations,
+                    todayBookings:
+                        todayBookings.length,
+
+                    availableStations:
+                        availableStations,
+
                 });
 
-                setTodayBookingList(todayBookings);
 
-                setActiveSessionList(activeSessions);
+                setTodayBookingList(
+                    todayBookings
+                );
+
+
+                // =================================================
+                // PLAYER ACTIVE SESSIONS
+                // =================================================
+
+                setActiveSessionList(
+
+                    role === "Player"
+
+                        ? activeSessions.filter(
+                            (session) =>
+                                Number(
+                                    session.user_id
+                                ) ===
+                                Number(user?.id)
+                        )
+
+                        : activeSessions
+
+                );
 
             } catch (error) {
 
-                console.error("Dashboard API ERROR");
-                console.error("Status:", error.response?.status);
-                console.error("Message:", error.response?.data);
-                console.error("URL:", error.config?.url);
+                console.error(
+                    "Dashboard API ERROR"
+                );
+
+                console.error(
+                    "Status:",
+                    error.response?.status
+                );
+
+                console.error(
+                    "Message:",
+                    error.response?.data
+                );
+
+                console.error(
+                    "URL:",
+                    error.config?.url
+                );
 
             } finally {
 
                 setLoading(false);
 
             }
+
         };
+
 
         loadStats();
 
-    }, []);
+    }, [role, user?.id]);
 
-    /* =========================================
-       ADMIN DASHBOARD
-    ========================================= */
+
+    // =========================================================
+    // ADMIN DASHBOARD
+    // =========================================================
 
     const renderAdminDashboard = () => {
 
-        // Calculate station occupancy dynamically
         const occupiedStations =
-            Math.max(
-                stats.stations - stats.availableStations,
-                0
-            );
+            stationList.filter(
+                (station) =>
+                    station.status === "occupied"
+            ).length;
+
 
         const occupancyPercent =
             stats.stations > 0
                 ? Math.round(
-                    (occupiedStations / stats.stations) * 100
+                    (
+                        occupiedStations /
+                        stats.stations
+                    ) * 100
                 )
                 : 0;
+
 
         return (
             <>
@@ -234,9 +385,12 @@ function DashboardHome({ user, setActivePage }) {
 
                     </div>
 
+
                     <button
                         className="btn-primary"
-                        onClick={() => setActivePage("Bookings")}
+                        onClick={() =>
+                            setActivePage("Bookings")
+                        }
                     >
                         + New Booking
                     </button>
@@ -255,7 +409,9 @@ function DashboardHome({ user, setActivePage }) {
                         </span>
 
                         <span className="stat-value">
-                            {loading ? "..." : stats.games}
+                            {loading
+                                ? "..."
+                                : stats.games}
                         </span>
 
                         <span className="stat-trend">
@@ -272,7 +428,9 @@ function DashboardHome({ user, setActivePage }) {
                         </span>
 
                         <span className="stat-value">
-                            {loading ? "..." : stats.stations}
+                            {loading
+                                ? "..."
+                                : stats.stations}
                         </span>
 
                         <span className="stat-trend">
@@ -289,7 +447,9 @@ function DashboardHome({ user, setActivePage }) {
                         </span>
 
                         <span className="stat-value">
-                            {loading ? "..." : stats.activeSessions}
+                            {loading
+                                ? "..."
+                                : stats.activeSessions}
                         </span>
 
                         <span className="stat-trend">
@@ -306,7 +466,9 @@ function DashboardHome({ user, setActivePage }) {
                         </span>
 
                         <span className="stat-value">
-                            {loading ? "..." : stats.todayBookings}
+                            {loading
+                                ? "..."
+                                : stats.todayBookings}
                         </span>
 
                         <span className="stat-trend">
@@ -322,6 +484,7 @@ function DashboardHome({ user, setActivePage }) {
 
                 <div className="dashboard-grid">
 
+
                     {/* QUICK ACTIONS */}
 
                     <div className="card">
@@ -334,9 +497,11 @@ function DashboardHome({ user, setActivePage }) {
 
                         </div>
 
+
                         <div className="card-body">
 
                             <div className="quick-actions">
+
 
                                 <button
                                     className="quick-action"
@@ -350,6 +515,7 @@ function DashboardHome({ user, setActivePage }) {
                                     </span>
 
                                     <div>
+
                                         <strong>
                                             Bookings
                                         </strong>
@@ -357,6 +523,7 @@ function DashboardHome({ user, setActivePage }) {
                                         <span>
                                             Manage reservations
                                         </span>
+
                                     </div>
 
                                 </button>
@@ -374,6 +541,7 @@ function DashboardHome({ user, setActivePage }) {
                                     </span>
 
                                     <div>
+
                                         <strong>
                                             Game Sessions
                                         </strong>
@@ -381,6 +549,7 @@ function DashboardHome({ user, setActivePage }) {
                                         <span>
                                             Monitor active sessions
                                         </span>
+
                                     </div>
 
                                 </button>
@@ -398,6 +567,7 @@ function DashboardHome({ user, setActivePage }) {
                                     </span>
 
                                     <div>
+
                                         <strong>
                                             Gaming Stations
                                         </strong>
@@ -405,6 +575,7 @@ function DashboardHome({ user, setActivePage }) {
                                         <span>
                                             Manage stations
                                         </span>
+
                                     </div>
 
                                 </button>
@@ -422,6 +593,7 @@ function DashboardHome({ user, setActivePage }) {
                                     </span>
 
                                     <div>
+
                                         <strong>
                                             Games
                                         </strong>
@@ -429,9 +601,11 @@ function DashboardHome({ user, setActivePage }) {
                                         <span>
                                             Manage games
                                         </span>
+
                                     </div>
 
                                 </button>
+
 
                             </div>
 
@@ -451,6 +625,7 @@ function DashboardHome({ user, setActivePage }) {
                             </h2>
 
                         </div>
+
 
                         <div className="card-body">
 
@@ -517,9 +692,11 @@ function DashboardHome({ user, setActivePage }) {
                                     </span>
 
                                     <span className="occupancy-percent">
+
                                         {loading
                                             ? "..."
                                             : `${occupancyPercent}%`}
+
                                     </span>
 
                                 </div>
@@ -530,7 +707,8 @@ function DashboardHome({ user, setActivePage }) {
                                     <div
                                         className="occupancy-fill"
                                         style={{
-                                            width: `${occupancyPercent}%`,
+                                            width:
+                                                `${occupancyPercent}%`,
                                         }}
                                     />
 
@@ -555,12 +733,13 @@ function DashboardHome({ user, setActivePage }) {
 
             </>
         );
+
     };
 
 
-    /* =========================================
-       STAFF DASHBOARD
-    ========================================= */
+    // =========================================================
+    // STAFF DASHBOARD
+    // =========================================================
 
     const renderStaffDashboard = () => {
 
@@ -581,9 +760,12 @@ function DashboardHome({ user, setActivePage }) {
 
                     </div>
 
+
                     <button
                         className="btn-primary"
-                        onClick={() => setActivePage("Bookings")}
+                        onClick={() =>
+                            setActivePage("Bookings")
+                        }
                     >
                         + New Booking
                     </button>
@@ -602,7 +784,9 @@ function DashboardHome({ user, setActivePage }) {
                         </span>
 
                         <span className="stat-value">
-                            {loading ? "..." : stats.todayBookings}
+                            {loading
+                                ? "..."
+                                : stats.todayBookings}
                         </span>
 
                         <span className="stat-trend">
@@ -619,7 +803,9 @@ function DashboardHome({ user, setActivePage }) {
                         </span>
 
                         <span className="stat-value">
-                            {loading ? "..." : stats.availableStations}
+                            {loading
+                                ? "..."
+                                : stats.availableStations}
                         </span>
 
                         <span className="stat-trend">
@@ -636,7 +822,9 @@ function DashboardHome({ user, setActivePage }) {
                         </span>
 
                         <span className="stat-value">
-                            {loading ? "..." : stats.activeSessions}
+                            {loading
+                                ? "..."
+                                : stats.activeSessions}
                         </span>
 
                         <span className="stat-trend">
@@ -666,6 +854,7 @@ function DashboardHome({ user, setActivePage }) {
 
 
                 <div className="dashboard-grid staff-dashboard-grid">
+
 
                     {/* TODAY'S BOOKINGS */}
 
@@ -700,9 +889,17 @@ function DashboardHome({ user, setActivePage }) {
                             ) : todayBookingList.length === 0 ? (
 
                                 <div className="empty-bookings">
+
                                     <CalendarDays size={32} />
-                                    <strong>No bookings for today</strong>
-                                    <span>There are no reservations scheduled for today.</span>
+
+                                    <strong>
+                                        No bookings for today
+                                    </strong>
+
+                                    <span>
+                                        There are no reservations scheduled for today.
+                                    </span>
+
                                 </div>
 
                             ) : (
@@ -743,11 +940,12 @@ function DashboardHome({ user, setActivePage }) {
                                                     </strong>
 
                                                     <span
-                                                        className={`status-badge ${booking.status ===
+                                                        className={`status-badge ${
+                                                            booking.status ===
                                                             "confirmed"
-                                                            ? "status-active"
-                                                            : "status-pending"
-                                                            }`}
+                                                                ? "status-active"
+                                                                : "status-pending"
+                                                        }`}
                                                     >
                                                         ● {booking.status}
                                                     </span>
@@ -830,11 +1028,12 @@ function DashboardHome({ user, setActivePage }) {
 
 
                                                 <span
-                                                    className={`status-badge ${station.status ===
+                                                    className={`status-badge ${
+                                                        station.status ===
                                                         "available"
-                                                        ? "status-active"
-                                                        : "status-occupied"
-                                                        }`}
+                                                            ? "status-active"
+                                                            : "status-occupied"
+                                                    }`}
                                                 >
                                                     ● {station.status}
                                                 </span>
@@ -956,68 +1155,74 @@ function DashboardHome({ user, setActivePage }) {
 
             </>
         );
+
     };
 
 
-    /* =========================================
-       PLAYER DASHBOARD
-    ========================================= */
+    // =========================================================
+    // PLAYER DASHBOARD
+    // =========================================================
 
     const renderPlayerDashboard = () => {
 
-        // Upcoming bookings
-        const upcomingBookings = bookingList
-            .filter((booking) => {
+        // =====================================================
+        // UPCOMING BOOKINGS
+        // =====================================================
 
-                if (booking.status === "cancelled") {
-                    return false;
-                }
+        const upcomingBookings =
+            bookingList
 
-                if (!booking.booking_date || !booking.start_time) {
-                    return false;
-                }
+                .filter((booking) => {
 
-                const datePart =
-                    booking.booking_date.split("T")[0];
+                    if (
+                        booking.status ===
+                        "cancelled"
+                    ) {
+                        return false;
+                    }
 
-                const bookingDateTime = new Date(
-                    `${datePart}T${booking.start_time}`
-                );
+                    if (
+                        !booking.booking_date ||
+                        !booking.start_time
+                    ) {
+                        return false;
+                    }
 
-                return bookingDateTime >= new Date();
+                    const datePart =
+                        booking.booking_date.split("T")[0];
 
-            })
-            .sort((a, b) => {
+                    const bookingDateTime =
+                        new Date(
+                            `${datePart}T${booking.start_time}`
+                        );
 
-                const aDate = new Date(
-                    `${a.booking_date.split("T")[0]}T${a.start_time}`
-                );
+                    return (
+                        bookingDateTime >=
+                        new Date()
+                    );
 
-                const bDate = new Date(
-                    `${b.booking_date.split("T")[0]}T${b.start_time}`
-                );
+                })
 
-                return aDate - bDate;
+                .sort((a, b) => {
 
-            });
+                    const aDate =
+                        new Date(
+                            `${a.booking_date.split("T")[0]}T${a.start_time}`
+                        );
+
+                    const bDate =
+                        new Date(
+                            `${b.booking_date.split("T")[0]}T${b.start_time}`
+                        );
+
+                    return aDate - bDate;
+
+                });
 
 
-        const nextBooking = upcomingBookings[0];
-        // const today = new Date();
+        const nextBooking =
+            upcomingBookings[0];
 
-        // const todaySessions = activeSessionList.filter((session) => {
-        //     if (!session.start_time) {
-        //         return false;
-        //     }
-
-        //     const sessionDate = new Date(session.start_time);
-
-        //     return (
-        //         sessionDate.getDate() === today.getDate() &&
-        //         sessionDate.getMonth() === today.getMonth() &&
-        //         sessionDate.getFullYear() === today.getFullYear()
-        //     );
-        // });
 
         return (
             <>
@@ -1036,11 +1241,23 @@ function DashboardHome({ user, setActivePage }) {
 
                     </div>
 
+
+                    {/* =========================================
+                        PLAYER BOOK GAME BUTTON
+                    ========================================= */}
+
                     <button
                         className="btn-primary"
-                        onClick={() =>
-                            setActivePage("Bookings")
-                        }
+                        onClick={() => {
+
+                            sessionStorage.setItem(
+                                "openCreateBooking",
+                                "true"
+                            );
+
+                            setActivePage("Bookings");
+
+                        }}
                     >
                         + Book a Game
                     </button>
@@ -1051,6 +1268,7 @@ function DashboardHome({ user, setActivePage }) {
                 {/* PLAYER STATS */}
 
                 <div className="stats-grid">
+
 
                     <div className="stat-card blue">
 
@@ -1134,7 +1352,8 @@ function DashboardHome({ user, setActivePage }) {
                         <span className="stat-trend">
 
                             {membership
-                                ? membership.status === "active"
+                                ? membership.status ===
+                                    "active"
                                     ? "Active membership"
                                     : "Inactive membership"
                                 : "No active membership"}
@@ -1147,6 +1366,7 @@ function DashboardHome({ user, setActivePage }) {
 
 
                 <div className="dashboard-grid">
+
 
                     {/* GAMING SHORTCUTS */}
 
@@ -1165,10 +1385,15 @@ function DashboardHome({ user, setActivePage }) {
 
                             <div className="quick-actions">
 
+
+                                {/* MY BOOKINGS */}
+
                                 <button
                                     className="quick-action"
                                     onClick={() =>
-                                        setActivePage("Bookings")
+                                        setActivePage(
+                                            "My Bookings"
+                                        )
                                     }
                                 >
 
@@ -1191,10 +1416,14 @@ function DashboardHome({ user, setActivePage }) {
                                 </button>
 
 
+                                {/* MY GAME SESSIONS */}
+
                                 <button
                                     className="quick-action"
                                     onClick={() =>
-                                        setActivePage("Game Session")
+                                        setActivePage(
+                                            "My Game Sessions"
+                                        )
                                     }
                                 >
 
@@ -1217,10 +1446,14 @@ function DashboardHome({ user, setActivePage }) {
                                 </button>
 
 
+                                {/* BROWSE GAMES */}
+
                                 <button
                                     className="quick-action"
                                     onClick={() =>
-                                        setActivePage("Games")
+                                        setActivePage(
+                                            "Games"
+                                        )
                                     }
                                 >
 
@@ -1242,35 +1475,75 @@ function DashboardHome({ user, setActivePage }) {
 
                                 </button>
 
-                                <div className="quick-action membership-shortcut">
+
+                                {/* MY MEMBERSHIP */}
+
+                                <button
+                                    className="quick-action membership-shortcut"
+                                    onClick={() =>
+                                        setActivePage(
+                                            "My Membership"
+                                        )
+                                    }
+                                >
+
                                     <span className="quick-action-icon">
                                         <Crown size={18} />
                                     </span>
 
+
                                     <div className="membership-shortcut-content">
-                                        <strong>My Membership</strong>
+
+                                        <strong>
+                                            My Membership
+                                        </strong>
+
 
                                         {loading ? (
-                                            <span>Loading membership...</span>
+
+                                            <span>
+                                                Loading membership...
+                                            </span>
+
                                         ) : membership ? (
+
                                             <>
-                                                <span>{membership.membership_type_name}</span>
+
+                                                <span>
+                                                    {
+                                                        membership.membership_type_name
+                                                    }
+                                                </span>
 
                                                 <small
                                                     className={
-                                                        membership.status === "active"
+                                                        membership.status ===
+                                                        "active"
                                                             ? "membership-active"
                                                             : "membership-inactive"
                                                     }
                                                 >
-                                                    ● {membership.status}
+                                                    ●{" "}
+                                                    {
+                                                        membership.status
+                                                    }
                                                 </small>
+
                                             </>
+
                                         ) : (
-                                            <span>No active membership</span>
+
+                                            <span>
+                                                No active membership
+                                            </span>
+
                                         )}
+
                                     </div>
-                                </div>
+
+                                </button>
+
+
                             </div>
 
                         </div>
@@ -1293,6 +1566,7 @@ function DashboardHome({ user, setActivePage }) {
 
                         <div className="card-body">
 
+
                             {/* CURRENT SESSION */}
 
                             <div className="overview-row">
@@ -1302,10 +1576,11 @@ function DashboardHome({ user, setActivePage }) {
                                 </span>
 
                                 <span
-                                    className={`status-badge ${activeSessionList.length > 0
-                                        ? "status-active"
-                                        : "status-inactive"
-                                        }`}
+                                    className={`status-badge ${
+                                        activeSessionList.length > 0
+                                            ? "status-active"
+                                            : "status-inactive"
+                                    }`}
                                 >
 
                                     ●{" "}
@@ -1332,6 +1607,7 @@ function DashboardHome({ user, setActivePage }) {
                                     {loading
                                         ? "..."
                                         : nextBooking
+
                                             ? new Date(
                                                 `${nextBooking.booking_date.split("T")[0]}T${nextBooking.start_time}`
                                             ).toLocaleTimeString(
@@ -1341,6 +1617,7 @@ function DashboardHome({ user, setActivePage }) {
                                                     minute: "2-digit",
                                                 }
                                             )
+
                                             : "No booking"}
 
                                 </strong>
@@ -1395,10 +1672,15 @@ function DashboardHome({ user, setActivePage }) {
                                     </span>
 
                                     <span className="occupancy-percent">
+
                                         {loading
                                             ? "..."
-                                            : `${Math.floor(todayGamingMinutes / 60)}h ${todayGamingMinutes % 60
+                                            : `${Math.floor(
+                                                todayGamingMinutes / 60
+                                            )}h ${
+                                                todayGamingMinutes % 60
                                             }m`}
+
                                     </span>
 
                                 </div>
@@ -1409,11 +1691,14 @@ function DashboardHome({ user, setActivePage }) {
                                     <div
                                         className="occupancy-fill"
                                         style={{
-                                            width: `${Math.min(
-                                                (todayGamingMinutes / 240) * 100,
-                                                100
-                                            )}%`,
-
+                                            width:
+                                                `${Math.min(
+                                                    (
+                                                        todayGamingMinutes /
+                                                        240
+                                                    ) * 100,
+                                                    100
+                                                )}%`,
                                         }}
                                     />
 
@@ -1421,9 +1706,11 @@ function DashboardHome({ user, setActivePage }) {
 
 
                                 <p className="occupancy-note">
+
                                     {todayGamingMinutes === 0
                                         ? "No gaming time recorded today."
                                         : "Gaming time calculated from today's sessions."}
+
                                 </p>
 
                             </div>
@@ -1436,22 +1723,27 @@ function DashboardHome({ user, setActivePage }) {
 
             </>
         );
+
     };
 
 
-    /* =========================================
-       ROLE SWITCH
-    ========================================= */
+    // =========================================================
+    // ROLE SWITCH
+    // =========================================================
 
     if (role === "Admin") {
         return renderAdminDashboard();
     }
 
+
     if (role === "Staff") {
         return renderStaffDashboard();
     }
 
+
     return renderPlayerDashboard();
+
 }
+
 
 export default DashboardHome;

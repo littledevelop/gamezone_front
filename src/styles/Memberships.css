@@ -962,3 +962,45 @@
     width: 100%;
   }
 }
+
+/* =========================================
+   HEADER ACTIONS
+========================================= */
+
+.memberships-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.membership-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+    background: #070A3A;
+  color: #fff;
+  font-size: 12px;
+ 
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.membership-add-btn:hover {
+  transform: translateY(-1px);
+  opacity: 0.92;
+}
+
+.membership-add-btn:active {
+  transform: translateY(0);
+}
+
+.membership-add-btn svg {
+  flex-shrink: 0;
+    color: #7CFF3A;
+
+}
