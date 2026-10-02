@@ -9,12 +9,14 @@ import {
   Pencil,
 } from "lucide-react";
 
-function Booking({ pageType }) {
+function Booking() {
   // ==================================================
   // USER / ROLE
   // ==================================================
 
-  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  const user = JSON.parse(
+    localStorage.getItem("user") || "{}"
+  );
 
   const role = user?.role_name || "Player";
   const userId = user?.id;
@@ -27,24 +29,35 @@ function Booking({ pageType }) {
   // ==================================================
 
   const [message, setMessage] = useState("");
-  const [bookingMessage, setBookingMessage] = useState("");
+  const [bookingMessage, setBookingMessage] =
+    useState("");
 
   const [bookings, setBookings] = useState([]);
-  const [memberships, setMemberships] = useState([]);
+  const [memberships, setMemberships] =
+    useState([]);
   const [games, setGames] = useState([]);
   const [stations, setStations] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
 
-  const [selectedBooking, setSelectedBooking] = useState(null);
-  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [selectedBooking, setSelectedBooking] =
+    useState(null);
 
-  const [updatingStatus, setUpdatingStatus] = useState(null);
-  const [editingBooking, setEditingBooking] = useState(null);
+  const [detailsLoading, setDetailsLoading] =
+    useState(false);
+
+  const [updatingStatus, setUpdatingStatus] =
+    useState(null);
+
+  const [editingBooking, setEditingBooking] =
+    useState(null);
 
   const [bookingForm, setBookingForm] = useState({
-    user_id: isPlayer && userId ? String(userId) : "",
+    user_id:
+      isPlayer && userId
+        ? String(userId)
+        : "",
     membership_id: "",
     game_id: "",
     station_id: "",
@@ -53,26 +66,27 @@ function Booking({ pageType }) {
     end_time: "",
   });
 
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [membershipTypeName, setMembershipTypeName] = useState("");
-  /*
-   * IMPORTANT:
-   *
-   * Admin / Staff:
-   * Always allowed to see the form.
-   *
-   * Player:
-   * Form is shown only when:
-   * 1. showCreateForm is true
-   * 2. pageType is NOT "My Bookings"
-   *
-   * This avoids calling setState inside useEffect.
-   */
+  const [showCreateForm, setShowCreateForm] =
+    useState(false);
+
+  const [membershipTypeName, setMembershipTypeName] =
+    useState("");
+
+  // ==================================================
+  // CREATE FORM PERMISSION
+  // ==================================================
+  //
+  // IMPORTANT:
+  // Player can open Create Booking form from
+  // "My Bookings" when showCreateForm is true.
+  //
+  // Directly opening My Bookings keeps the form
+  // hidden because showCreateForm is false.
+  // ==================================================
+
   const canCreateBooking =
     canManageBooking ||
-    (isPlayer &&
-      pageType !== "My Bookings" &&
-      showCreateForm);
+    (isPlayer && showCreateForm);
 
   // ==================================================
   // TODAY
@@ -82,10 +96,36 @@ function Booking({ pageType }) {
 
   const localToday = new Date(
     today.getTime() -
-    today.getTimezoneOffset() * 60000
+      today.getTimezoneOffset() * 60000
   )
     .toISOString()
     .split("T")[0];
+
+  // ==================================================
+  // BOOKING / PAYMENT HELPERS
+  // ==================================================
+
+  const formatAmount = (amount) => {
+    const value = Number(amount);
+
+    if (!Number.isFinite(value)) {
+      return "₹0.00";
+    }
+
+    return `₹${value.toFixed(2)}`;
+  };
+
+  const getPaymentStatusLabel = (status) => {
+    if (status === "paid") {
+      return "Paid";
+    }
+
+    if (status === "refunded") {
+      return "Refunded";
+    }
+
+    return "Payment Pending";
+  };
 
   // ==================================================
   // HANDLE FORM CHANGE
@@ -136,12 +176,8 @@ function Booking({ pageType }) {
 
     setEditingBooking(null);
 
-    /*
-     * After Player creates a booking,
-     * hide the create form.
-     *
-     * Admin / Staff are unaffected.
-     */
+    // Player closes the form after successful
+    // create/update/cancel edit.
     if (isPlayer) {
       setShowCreateForm(false);
     }
@@ -163,7 +199,6 @@ function Booking({ pageType }) {
       const allBookings =
         res.data.bookings || [];
 
-      // Player sees only their own bookings
       if (isPlayer) {
         const myBookings =
           allBookings.filter(
@@ -174,7 +209,6 @@ function Booking({ pageType }) {
 
         setBookings(myBookings);
       } else {
-        // Admin / Staff see all bookings
         setBookings(allBookings);
       }
     } catch (error) {
@@ -220,6 +254,7 @@ function Booking({ pageType }) {
   // ==================================================
   // FETCH PLAYER MEMBERSHIP
   // ==================================================
+
   const fetchMyMembership = useCallback(
     async () => {
       if (!isPlayer) return;
@@ -245,9 +280,9 @@ function Booking({ pageType }) {
 
           setMembershipTypeName(
             membership.membership_type_name ||
-            membership.membership_type ||
-            membership.type_name ||
-            "Active Membership"
+              membership.membership_type ||
+              membership.type_name ||
+              "Active Membership"
           );
         } else {
           setMembershipTypeName("");
@@ -263,6 +298,7 @@ function Booking({ pageType }) {
     },
     [isPlayer]
   );
+
   // ==================================================
   // FETCH GAMES
   // ==================================================
@@ -296,8 +332,8 @@ function Booking({ pageType }) {
         if (res.data.success) {
           setStations(
             res.data.data ||
-            res.data.stations ||
-            []
+              res.data.stations ||
+              []
           );
         }
       } catch (error) {
@@ -321,10 +357,6 @@ function Booking({ pageType }) {
       ) === "true";
 
     if (shouldOpenCreate) {
-      /*
-       * Only Player needs this flag.
-       * Admin / Staff already have the form visible.
-       */
       if (isPlayer) {
         setShowCreateForm(true);
       }
@@ -387,16 +419,96 @@ function Booking({ pageType }) {
       } else {
         setMessage(
           res.data.message ||
-          "Failed to load booking details."
+            "Failed to load booking details."
         );
       }
     } catch (error) {
       setMessage(
         error.response?.data?.message ||
-        "Failed to load booking details."
+          "Failed to load booking details."
       );
     } finally {
       setDetailsLoading(false);
+    }
+  };
+
+  // ==================================================
+  // PAY NOW
+  // ==================================================
+
+  const handlePayNow = async (booking) => {
+    if (!booking?.id) return;
+
+    if (booking.payment_status === "paid") {
+      setBookingMessage(
+        "Payment has already been completed."
+      );
+      return;
+    }
+
+    if (
+      booking.status === "cancelled" ||
+      booking.status === "completed"
+    ) {
+      setBookingMessage(
+        "Payment is not available for this booking."
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Pay ${formatAmount(
+        booking.amount
+      )} for Booking #${booking.id}?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setBookingMessage("");
+      setUpdatingStatus(booking.id);
+
+      const res = await api.post(
+        "/payments",
+        {
+          booking_id: booking.id,
+        }
+      );
+
+      if (res.data.success) {
+        setBookingMessage(
+          "Payment completed successfully. Your booking is confirmed."
+        );
+
+        await fetchBookings();
+
+        if (
+          selectedBooking?.id === booking.id
+        ) {
+          const detailRes =
+            await api.get(
+              `/booking/${booking.id}`
+            );
+
+          if (detailRes.data.success) {
+            setSelectedBooking(
+              detailRes.data.booking
+            );
+          }
+        }
+      } else {
+        setBookingMessage(
+          res.data.message ||
+            "Payment failed."
+        );
+      }
+    } catch (error) {
+      setBookingMessage(
+        error.response?.data?.message ||
+          "Unable to process payment."
+      );
+    } finally {
+      setUpdatingStatus(null);
     }
   };
 
@@ -441,13 +553,13 @@ function Booking({ pageType }) {
       } else {
         setBookingMessage(
           res.data.message ||
-          "Unable to update booking status."
+            "Unable to update booking status."
         );
       }
     } catch (error) {
       setBookingMessage(
         error.response?.data?.message ||
-        "Unable to update booking status."
+          "Unable to update booking status."
       );
     } finally {
       setUpdatingStatus(null);
@@ -458,7 +570,17 @@ function Booking({ pageType }) {
   // CONFIRM BOOKING
   // ==================================================
 
-  const handleConfirmBooking = (id) => {
+  const handleConfirmBooking = (booking) => {
+    if (!booking?.id) return;
+
+    if (booking.payment_status !== "paid") {
+      setBookingMessage(
+        "Please complete the payment before confirming this booking."
+      );
+
+      return;
+    }
+
     const confirmed = window.confirm(
       "Are you sure you want to confirm this booking?"
     );
@@ -466,7 +588,7 @@ function Booking({ pageType }) {
     if (!confirmed) return;
 
     updateBookingStatus(
-      id,
+      booking.id,
       "confirmed"
     );
   };
@@ -475,7 +597,16 @@ function Booking({ pageType }) {
   // CANCEL BOOKING
   // ==================================================
 
-  const handleCancelBooking = (id) => {
+  const handleCancelBooking = (booking) => {
+    if (!booking?.id) return;
+
+    if (
+      booking.status === "cancelled" ||
+      booking.status === "completed"
+    ) {
+      return;
+    }
+
     const confirmed = window.confirm(
       "Are you sure you want to cancel this booking?"
     );
@@ -483,7 +614,7 @@ function Booking({ pageType }) {
     if (!confirmed) return;
 
     updateBookingStatus(
-      id,
+      booking.id,
       "cancelled"
     );
   };
@@ -554,7 +685,7 @@ function Booking({ pageType }) {
 
       if (res.data.success) {
         setMessage(
-          "Booking created successfully."
+          "Booking created successfully. Payment is pending."
         );
 
         resetForm();
@@ -563,13 +694,13 @@ function Booking({ pageType }) {
       } else {
         setMessage(
           res.data.message ||
-          "Unable to create booking."
+            "Unable to create booking."
         );
       }
     } catch (error) {
       setMessage(
         error.response?.data?.message ||
-        "Unable to create booking."
+          "Unable to create booking."
       );
     } finally {
       setCreating(false);
@@ -614,13 +745,13 @@ function Booking({ pageType }) {
       } else {
         setMessage(
           res.data.message ||
-          "Unable to update booking."
+            "Unable to update booking."
         );
       }
     } catch (error) {
       setMessage(
         error.response?.data?.message ||
-        "Unable to update booking."
+          "Unable to update booking."
       );
     } finally {
       setCreating(false);
@@ -668,8 +799,8 @@ function Booking({ pageType }) {
           booking_date:
             data.booking_date
               ? data.booking_date.split(
-                "T"
-              )[0]
+                  "T"
+                )[0]
               : "",
 
           start_time:
@@ -679,10 +810,6 @@ function Booking({ pageType }) {
             data.end_time || "",
         });
 
-        /*
-         * Admin / Staff can edit bookings.
-         * Player editing is currently not exposed.
-         */
         setShowCreateForm(true);
 
         window.scrollTo({
@@ -692,13 +819,13 @@ function Booking({ pageType }) {
       } else {
         setMessage(
           res.data.message ||
-          "Failed to load booking for editing."
+            "Failed to load booking for editing."
         );
       }
     } catch (error) {
       setMessage(
         error.response?.data?.message ||
-        "Failed to load booking for editing."
+          "Failed to load booking for editing."
       );
     }
   };
@@ -719,11 +846,7 @@ function Booking({ pageType }) {
         fetchStations(),
       ]);
 
-      /*
-       * Check whether the page was opened through:
-       *
-       * Games -> Book Now
-       */
+      // Check whether user came from Games -> Book Now
       loadSelectedGame();
 
       setLoading(false);
@@ -761,7 +884,7 @@ function Booking({ pageType }) {
     memberships.filter(
       (m) =>
         Number(m.user_id) ===
-        Number(bookingForm.user_id) &&
+          Number(bookingForm.user_id) &&
         m.status === "active"
     );
 
@@ -797,11 +920,7 @@ function Booking({ pageType }) {
 
   return (
     <div className="booking-page">
-
-      {/* ============================================ */}
       {/* PAGE HEADER */}
-      {/* ============================================ */}
-
       <div className="booking-header">
         <div>
           <h1>
@@ -818,14 +937,9 @@ function Booking({ pageType }) {
         </div>
       </div>
 
-      {/* ============================================ */}
       {/* CREATE / EDIT BOOKING */}
-      {/* ============================================ */}
-
-      {canCreateBooking && pageType !== "My Bookings" && (
-
+      {canCreateBooking && (
         <div className="booking-card">
-
           <div className="card-header">
             <div>
               <h2>
@@ -853,9 +967,7 @@ function Booking({ pageType }) {
             className="booking-form"
             noValidate
           >
-
             {/* PLAYER */}
-
             {canManageBooking ? (
               <div className="form-group">
                 <label>Player</label>
@@ -883,7 +995,7 @@ function Booking({ pageType }) {
                     ))
                   ) : (
                     <option value="1">
-                      GameZone Admin (Fallback)
+                      GameZone Admin
                     </option>
                   )}
                 </select>
@@ -905,7 +1017,6 @@ function Booking({ pageType }) {
             )}
 
             {/* MEMBERSHIP */}
-
             <div className="form-group">
               <label>Membership</label>
 
@@ -952,7 +1063,7 @@ function Booking({ pageType }) {
 
                   {bookingForm.user_id &&
                     playerMemberships.length ===
-                    0 && (
+                      0 && (
                       <small className="warning-text">
                         No active membership
                         found.
@@ -983,7 +1094,6 @@ function Booking({ pageType }) {
             </div>
 
             {/* GAME */}
-
             <div className="form-group">
               <label>Game</label>
 
@@ -1016,7 +1126,6 @@ function Booking({ pageType }) {
             </div>
 
             {/* GAMING STATION */}
-
             <div className="form-group">
               <label>Gaming Station</label>
 
@@ -1047,7 +1156,6 @@ function Booking({ pageType }) {
             </div>
 
             {/* BOOKING DATE */}
-
             <div className="form-group">
               <label>Booking Date</label>
 
@@ -1064,7 +1172,6 @@ function Booking({ pageType }) {
             </div>
 
             {/* START TIME */}
-
             <div className="form-group">
               <label>Start Time</label>
 
@@ -1080,7 +1187,6 @@ function Booking({ pageType }) {
             </div>
 
             {/* END TIME */}
-
             <div className="form-group">
               <label>End Time</label>
 
@@ -1096,7 +1202,6 @@ function Booking({ pageType }) {
             </div>
 
             {/* MESSAGE */}
-
             {message && (
               <div className="booking-message">
                 {message}
@@ -1104,9 +1209,7 @@ function Booking({ pageType }) {
             )}
 
             {/* FORM ACTIONS */}
-
             <div className="form-actions">
-
               {editingBooking && (
                 <button
                   type="button"
@@ -1144,24 +1247,16 @@ function Booking({ pageType }) {
         </div>
       )}
 
-      {/* ============================================ */}
       {/* STATUS MESSAGE */}
-      {/* ============================================ */}
-
       {bookingMessage && (
         <div className="booking-message">
           {bookingMessage}
         </div>
       )}
 
-      {/* ============================================ */}
       {/* BOOKING LIST */}
-      {/* ============================================ */}
-
       <div className="booking-list-section">
-
         <div className="section-header">
-
           <div>
             <h2>
               {canManageBooking
@@ -1170,16 +1265,12 @@ function Booking({ pageType }) {
             </h2>
           </div>
 
-          <span>
-            {bookings.length}
-          </span>
+          <span>{bookings.length}</span>
         </div>
 
         {/* EMPTY */}
-
         {bookings.length === 0 ? (
           <div className="empty-bookings">
-
             <div className="empty-icon">
               🎮
             </div>
@@ -1195,25 +1286,16 @@ function Booking({ pageType }) {
                 ? "Create your first booking using the form above."
                 : "Choose a game from the Games page to create your first booking."}
             </p>
-
           </div>
         ) : (
-
-          /* BOOKING GRID */
-
           <div className="booking-grid">
-
             {bookings.map((booking) => (
-
               <div
                 className="booking-item"
                 key={booking.id}
               >
-
                 {/* BOOKING HEADER */}
-
                 <div className="booking-item-header">
-
                   <span className="booking-number">
                     Booking #{booking.id}
                   </span>
@@ -1223,19 +1305,15 @@ function Booking({ pageType }) {
                   >
                     {booking.status}
                   </span>
-
                 </div>
 
                 {/* GAME */}
-
                 <h3>
                   {booking.game_name}
                 </h3>
 
                 {/* DETAILS */}
-
                 <div className="booking-details">
-
                   <div className="detail-row">
                     <span>Player</span>
 
@@ -1261,10 +1339,10 @@ function Booking({ pageType }) {
                     <strong>
                       {booking.booking_date
                         ? new Date(
-                          booking.booking_date
-                        ).toLocaleDateString(
-                          "en-IN"
-                        )
+                            booking.booking_date
+                          ).toLocaleDateString(
+                            "en-IN"
+                          )
                         : "-"}
                     </strong>
                   </div>
@@ -1281,14 +1359,60 @@ function Booking({ pageType }) {
                     </strong>
                   </div>
 
+                  <div className="detail-row">
+                    <span>Amount</span>
+
+                    <strong>
+                      {formatAmount(
+                        booking.amount
+                      )}
+                    </strong>
+                  </div>
+
+                  <div className="detail-row">
+                    <span>Payment</span>
+
+                    <strong
+                      className={`payment-status-text payment-${booking.payment_status}`}
+                    >
+                      {getPaymentStatusLabel(
+                        booking.payment_status
+                      )}
+                    </strong>
+                  </div>
                 </div>
 
                 {/* FOOTER */}
-
                 <div className="booking-item-footer">
+                  {/* PLAYER PAY NOW */}
+                  {isPlayer &&
+                    booking.status !==
+                      "cancelled" &&
+                    booking.status !==
+                      "completed" &&
+                    booking.payment_status !==
+                      "paid" && (
+                      <button
+                        type="button"
+                        className="pay-now-btn"
+                        onClick={() =>
+                          handlePayNow(
+                            booking
+                          )
+                        }
+                        disabled={
+                          updatingStatus ===
+                          booking.id
+                        }
+                      >
+                        {updatingStatus ===
+                        booking.id
+                          ? "Processing..."
+                          : "Pay Now"}
+                      </button>
+                    )}
 
                   {/* VIEW */}
-
                   <button
                     type="button"
                     className="view-details-btn"
@@ -1301,15 +1425,16 @@ function Booking({ pageType }) {
                     View Details
                   </button>
 
-                  {/* ADMIN / STAFF */}
-
-                  {canManageBooking && (
+                  {/* MANAGEMENT ACTIONS */}
+                  {(canManageBooking ||
+                    isPlayer) && (
                     <div className="booking-actions">
-
-                      {/* EDIT */}
-
-                      {booking.status !==
-                        "cancelled" && (
+                      {/* ADMIN / STAFF EDIT */}
+                      {canManageBooking &&
+                        booking.status !==
+                          "cancelled" &&
+                        booking.status !==
+                          "completed" && (
                           <button
                             type="button"
                             className="edit-booking-btn icon-action-btn"
@@ -1325,59 +1450,19 @@ function Booking({ pageType }) {
                           </button>
                         )}
 
-                      {/* PENDING */}
-
-                      {booking.status ===
-                        "pending" && (
-                          <>
-                            <button
-                              type="button"
-                              className="confirm-booking-btn icon-action-btn"
-                              onClick={() =>
-                                handleConfirmBooking(
-                                  booking.id
-                                )
-                              }
-                              disabled={
-                                updatingStatus ===
-                                booking.id
-                              }
-                              title="Confirm Booking"
-                              aria-label="Confirm Booking"
-                            >
-                              <Check size={15} />
-                            </button>
-
-                            <button
-                              type="button"
-                              className="cancel-booking-btn icon-action-btn"
-                              onClick={() =>
-                                handleCancelBooking(
-                                  booking.id
-                                )
-                              }
-                              disabled={
-                                updatingStatus ===
-                                booking.id
-                              }
-                              title="Cancel Booking"
-                              aria-label="Cancel Booking"
-                            >
-                              <X size={15} />
-                            </button>
-                          </>
-                        )}
-
-                      {/* CONFIRMED */}
-
-                      {booking.status ===
-                        "confirmed" && (
+                      {/* CANCEL */}
+                      {(canManageBooking ||
+                        isPlayer) &&
+                        booking.status !==
+                          "cancelled" &&
+                        booking.status !==
+                          "completed" && (
                           <button
                             type="button"
                             className="cancel-booking-btn icon-action-btn"
                             onClick={() =>
                               handleCancelBooking(
-                                booking.id
+                                booking
                               )
                             }
                             disabled={
@@ -1390,10 +1475,8 @@ function Booking({ pageType }) {
                             <X size={15} />
                           </button>
                         )}
-
                     </div>
                   )}
-
                 </div>
               </div>
             ))}
@@ -1401,10 +1484,7 @@ function Booking({ pageType }) {
         )}
       </div>
 
-      {/* ============================================ */}
       {/* BOOKING DETAILS MODAL */}
-      {/* ============================================ */}
-
       {selectedBooking && (
         <div
           className="booking-modal-overlay"
@@ -1412,21 +1492,15 @@ function Booking({ pageType }) {
             setSelectedBooking(null)
           }
         >
-
           <div
             className="booking-modal"
             onClick={(e) =>
               e.stopPropagation()
             }
           >
-
             {/* MODAL HEADER */}
-
             <div className="booking-modal-header">
-
-              <h2>
-                Booking Details
-              </h2>
+              <h2>Booking Details</h2>
 
               <button
                 type="button"
@@ -1437,11 +1511,9 @@ function Booking({ pageType }) {
               >
                 ×
               </button>
-
             </div>
 
             {/* MODAL BODY */}
-
             {detailsLoading ? (
               <div
                 className="booking-loading"
@@ -1455,7 +1527,6 @@ function Booking({ pageType }) {
               </div>
             ) : (
               <div className="booking-modal-body">
-
                 <div className="modal-detail-row">
                   <span>Booking ID</span>
 
@@ -1498,10 +1569,10 @@ function Booking({ pageType }) {
                   <strong>
                     {selectedBooking.booking_date
                       ? new Date(
-                        selectedBooking.booking_date
-                      ).toLocaleDateString(
-                        "en-IN"
-                      )
+                          selectedBooking.booking_date
+                        ).toLocaleDateString(
+                          "en-IN"
+                        )
                       : "-"}
                   </strong>
                 </div>
@@ -1528,37 +1599,114 @@ function Booking({ pageType }) {
                   </span>
                 </div>
 
+                <div className="modal-detail-row">
+                  <span>Amount</span>
+
+                  <strong>
+                    {formatAmount(
+                      selectedBooking.amount
+                    )}
+                  </strong>
+                </div>
+
+                <div className="modal-detail-row">
+                  <span>Payment</span>
+
+                  <span
+                    className={`payment-status-badge payment-${selectedBooking.payment_status}`}
+                  >
+                    {getPaymentStatusLabel(
+                      selectedBooking.payment_status
+                    )}
+                  </span>
+                </div>
+
+                {/* PAYMENT INFORMATION */}
+                {selectedBooking.status ===
+                  "pending" &&
+                  selectedBooking.payment_status !==
+                    "paid" && (
+                    <div className="booking-payment-notice">
+                      <p>
+                        Payment is pending. Complete
+                        your payment to confirm this
+                        booking.
+                      </p>
+
+                      {isPlayer &&
+                        Number(
+                          selectedBooking.user_id
+                        ) === Number(userId) && (
+                          <button
+                            type="button"
+                            className="pay-now-btn"
+                            onClick={() =>
+                              handlePayNow(
+                                selectedBooking
+                              )
+                            }
+                            disabled={
+                              updatingStatus ===
+                              selectedBooking.id
+                            }
+                          >
+                            {updatingStatus ===
+                            selectedBooking.id
+                              ? "Processing..."
+                              : `Pay Now ${formatAmount(
+                                  selectedBooking.amount
+                                )}`}
+                          </button>
+                        )}
+                    </div>
+                  )}
+
+                {/* PAYMENT SUCCESS */}
+                {selectedBooking.payment_status ===
+                  "paid" &&
+                  selectedBooking.status ===
+                    "confirmed" && (
+                    <div className="booking-payment-success">
+                      Payment completed. Your booking
+                      is confirmed.
+                    </div>
+                  )}
               </div>
             )}
 
             {/* MODAL FOOTER */}
-
             <div className="booking-modal-footer">
-
-              {/* PENDING ACTIONS */}
-
+              {/* ADMIN / STAFF PENDING ACTIONS */}
               {!detailsLoading &&
                 canManageBooking &&
                 selectedBooking.status ===
-                "pending" && (
+                  "pending" && (
                   <>
                     <button
                       type="button"
                       className="confirm-booking-btn"
                       onClick={() =>
                         handleConfirmBooking(
-                          selectedBooking.id
+                          selectedBooking
                         )
                       }
                       disabled={
                         updatingStatus ===
-                        selectedBooking.id
+                          selectedBooking.id ||
+                        selectedBooking.payment_status !==
+                          "paid"
+                      }
+                      title={
+                        selectedBooking.payment_status !==
+                        "paid"
+                          ? "Complete payment before confirming the booking"
+                          : "Confirm Booking"
                       }
                     >
                       <Check size={14} />
 
                       {updatingStatus ===
-                        selectedBooking.id
+                      selectedBooking.id
                         ? "Updating..."
                         : "Confirm Booking"}
                     </button>
@@ -1568,7 +1716,7 @@ function Booking({ pageType }) {
                       className="cancel-booking-btn"
                       onClick={() =>
                         handleCancelBooking(
-                          selectedBooking.id
+                          selectedBooking
                         )
                       }
                       disabled={
@@ -1583,18 +1731,46 @@ function Booking({ pageType }) {
                   </>
                 )}
 
-              {/* CONFIRMED CANCEL */}
-
+              {/* PLAYER PENDING / CONFIRMED CANCEL */}
               {!detailsLoading &&
-                canManageBooking &&
-                selectedBooking.status ===
-                "confirmed" && (
+                isPlayer &&
+                Number(
+                  selectedBooking.user_id
+                ) === Number(userId) &&
+                selectedBooking.status !==
+                  "cancelled" &&
+                selectedBooking.status !==
+                  "completed" && (
                   <button
                     type="button"
                     className="cancel-booking-btn"
                     onClick={() =>
                       handleCancelBooking(
-                        selectedBooking.id
+                        selectedBooking
+                      )
+                    }
+                    disabled={
+                      updatingStatus ===
+                      selectedBooking.id
+                    }
+                  >
+                    <X size={14} />
+
+                    Cancel Booking
+                  </button>
+                )}
+
+              {/* ADMIN / STAFF CONFIRMED CANCEL */}
+              {!detailsLoading &&
+                canManageBooking &&
+                selectedBooking.status ===
+                  "confirmed" && (
+                  <button
+                    type="button"
+                    className="cancel-booking-btn"
+                    onClick={() =>
+                      handleCancelBooking(
+                        selectedBooking
                       )
                     }
                     disabled={
@@ -1609,7 +1785,6 @@ function Booking({ pageType }) {
                 )}
 
               {/* CLOSE */}
-
               <button
                 type="button"
                 className="modal-close-button"
@@ -1619,7 +1794,6 @@ function Booking({ pageType }) {
               >
                 Close
               </button>
-
             </div>
           </div>
         </div>

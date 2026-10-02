@@ -272,6 +272,51 @@
   cursor: not-allowed;
 }
 
+/* =========================================================
+   PAY NOW BUTTON
+========================================================= */
+
+.pay-now-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  min-height: 38px;
+  padding: 0 16px;
+
+  border: none;
+  border-radius: 9px;
+
+  background: #5ee115;
+  color: #070a3a;
+
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 750;
+
+  cursor: pointer;
+
+  transition:
+    background 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.pay-now-btn:hover:not(:disabled) {
+  background: #6ae70b;
+  box-shadow: 0 5px 14px rgba(94, 225, 21, 0.22);
+  transform: translateY(-1px);
+}
+
+.pay-now-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.pay-now-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
 
 /* =========================================================
    CANCEL EDIT / CLOSE

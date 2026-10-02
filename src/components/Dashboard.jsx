@@ -9,6 +9,7 @@ import GameSession from "../pages/GameSession";
 import Payments from "../pages/Payments";
 import DashboardHome from "../pages/DashboardHome";
 import Camera from "../pages/Camera";
+import Users from "../pages/Users";
 import "../styles/Dashboard.css";
 
 function Dashboard({ onLogout }) {
@@ -26,6 +27,7 @@ function Dashboard({ onLogout }) {
     Admin: [
       "Dashboard",
       "Games",
+      "Users",
       "Gaming Station",
       "Cameras",
       "Memberships",
@@ -84,6 +86,9 @@ function Dashboard({ onLogout }) {
       case "Games":
         return <GamesPage setActivePage={handlePageChange} />;
 
+      case "Users":
+        return <Users/>
+        
       case "Gaming Station":
         return <GamingStation />;
 

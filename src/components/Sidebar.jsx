@@ -9,6 +9,7 @@ import {
     CreditCard,
     Video,
     User,
+    Users,
     LogOut,
     X,
 } from "lucide-react";
@@ -40,6 +41,10 @@ function Sidebar({
             {
                 label: "Games",
                 icon: Gamepad2,
+            },
+            {
+                label: "Users",
+                icon: Users,
             },
             {
                 label: "Gaming Station",

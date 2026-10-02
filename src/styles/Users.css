@@ -1,0 +1,145 @@
+/* =====================================================
+   USER MANAGEMENT
+===================================================== */
+
+.user-edit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    border: 1px solid #dfe5df;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #070a3a;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s ease;
+}
+
+.user-edit-btn:hover {
+    background: #e9ffd9;
+    border-color: #5ee115;
+}
+
+/* =====================================================
+   MODAL
+===================================================== */
+
+.user-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(5, 8, 45, 0.65);
+}
+
+.user-modal {
+    width: 100%;
+    max-width: 680px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+.user-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e8ece8;
+}
+
+.user-modal-header h2 {
+    margin: 0;
+    color: #070a3a;
+    font-size: 20px;
+}
+
+.user-modal-header p {
+    margin: 5px 0 0;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.user-modal-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 7px;
+    background: #f5f7f2;
+    color: #070a3a;
+    cursor: pointer;
+}
+
+.user-modal-close:hover {
+    background: #e9ffd9;
+}
+
+.user-modal-body {
+    padding: 24px;
+}
+
+.user-password-field span {
+    color: #777;
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.user-modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 24px;
+    padding-top: 18px;
+    border-top: 1px solid #e8ece8;
+}
+
+.user-cancel-btn {
+    padding: 10px 18px;
+    border: 1px solid #dfe5df;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #333;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.user-cancel-btn:hover {
+    background: #f5f7f2;
+}
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+
+@media (max-width: 700px) {
+    .user-modal-overlay {
+        padding: 12px;
+    }
+
+    .user-modal-header,
+    .user-modal-body {
+        padding: 18px;
+    }
+
+    .user-modal-actions {
+        flex-direction: column-reverse;
+    }
+
+    .user-modal-actions button {
+        width: 100%;
+    }
+
+    .table-container {
+        overflow-x: auto;
+    }
+}

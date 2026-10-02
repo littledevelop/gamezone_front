@@ -50,6 +50,7 @@ function Games({ setActivePage }) {
     game_type_id: "",
     genre: "",
     description: "",
+    price: "",
     status: "active",
   });
 
@@ -57,6 +58,7 @@ function Games({ setActivePage }) {
     game_name: "",
     platform_id: "",
     game_type_id: "",
+    price: "",
   });
 
   // --------------------------------------------------
@@ -89,7 +91,6 @@ function Games({ setActivePage }) {
       }
     } catch (error) {
       console.error("Load games error:", error);
-
       showMessage("Failed to load games", "error");
     }
   };
@@ -196,23 +197,25 @@ function Games({ setActivePage }) {
     // Close game details modal
     setViewGame(null);
 
-    /*
-      Store selected game temporarily so Booking page
-      can use it when it opens.
-    */
+    // Store selected game for Booking page
     sessionStorage.setItem(
       "selectedGameForBooking",
       JSON.stringify({
         id: game.id,
         game_name: game.game_name || game.name,
+        price: Number(game.price || 0),
       })
     );
-    sessionStorage.setItem("openCreateBooking", "true");
 
+    // Tell Booking page to open Create Booking form
+    sessionStorage.setItem(
+      "openCreateBooking",
+      "true"
+    );
 
-    // Go to Booking page
+    // Player uses My Bookings page
     if (setActivePage) {
-setActivePage("My Bookings");
+      setActivePage("My Bookings");
     }
   };
 
@@ -229,6 +232,7 @@ setActivePage("My Bookings");
       game_type_id: "",
       genre: "",
       description: "",
+      price: "",
       status: "active",
     });
 
@@ -236,6 +240,7 @@ setActivePage("My Bookings");
       game_name: "",
       platform_id: "",
       game_type_id: "",
+      price: "",
     });
 
     setModalOpen(true);
@@ -254,6 +259,11 @@ setActivePage("My Bookings");
       game_type_id: game.game_type_id || "",
       genre: game.genre || "",
       description: game.description || "",
+      price:
+        game.price !== undefined &&
+        game.price !== null
+          ? String(game.price)
+          : "",
       status: game.status || "active",
     });
 
@@ -261,6 +271,7 @@ setActivePage("My Bookings");
       game_name: "",
       platform_id: "",
       game_type_id: "",
+      price: "",
     });
 
     setModalOpen(true);
@@ -280,6 +291,7 @@ setActivePage("My Bookings");
       game_name: "",
       platform_id: "",
       game_type_id: "",
+      price: "",
     });
   };
 
@@ -314,6 +326,7 @@ setActivePage("My Bookings");
       game_name: "",
       platform_id: "",
       game_type_id: "",
+      price: "",
     };
 
     if (!formData.game_name.trim()) {
@@ -329,9 +342,24 @@ setActivePage("My Bookings");
     }
 
     if (
+      formData.price === "" ||
+      formData.price === null ||
+      formData.price === undefined
+    ) {
+      errors.price = "Price is required";
+    } else if (
+      isNaN(formData.price) ||
+      Number(formData.price) < 0
+    ) {
+      errors.price =
+        "Price must be a valid non-negative number";
+    }
+
+    if (
       errors.game_name ||
       errors.platform_id ||
-      errors.game_type_id
+      errors.game_type_id ||
+      errors.price
     ) {
       setFormErrors(errors);
       return;
@@ -341,6 +369,7 @@ setActivePage("My Bookings");
       game_name: "",
       platform_id: "",
       game_type_id: "",
+      price: "",
     });
 
     setSaving(true);
@@ -354,11 +383,15 @@ setActivePage("My Bookings");
           : null,
         genre: formData.genre.trim(),
         description: formData.description.trim(),
+        price: Number(formData.price),
         status: formData.status,
       };
 
       if (editingGame) {
-        await api.put(`/games/${editingGame.id}`, payload);
+        await api.put(
+          `/games/${editingGame.id}`,
+          payload
+        );
 
         showMessage("Game updated successfully");
       } else {
@@ -437,12 +470,9 @@ setActivePage("My Bookings");
 
   return (
     <div className="games-page">
-
       {/* PAGE HEADER */}
       <div className="games-page-header">
-
         <div className="games-heading">
-
           <h1>Games Library</h1>
 
           <p>
@@ -451,11 +481,9 @@ setActivePage("My Bookings");
               ? " • Manage your catalog"
               : " • Browse available games"}
           </p>
-
         </div>
 
         <div className="games-header-actions">
-
           <div className="games-count">
             <Gamepad2 size={14} />
             <strong>{filtered.length}</strong>
@@ -472,9 +500,7 @@ setActivePage("My Bookings");
               <span>Add Game</span>
             </button>
           )}
-
         </div>
-
       </div>
 
       {/* MESSAGE */}
@@ -486,9 +512,7 @@ setActivePage("My Bookings");
 
       {/* SEARCH */}
       <div className="games-toolbar">
-
         <div className="games-search">
-
           <Search size={16} />
 
           <input
@@ -497,20 +521,16 @@ setActivePage("My Bookings");
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           />
-
         </div>
 
         <span className="games-results">
           {filtered.length} results
         </span>
-
       </div>
 
       {/* EMPTY STATE */}
       {filtered.length === 0 ? (
-
         <div className="games-empty">
-
           <div className="games-empty-icon">
             <Gamepad2 size={22} />
           </div>
@@ -533,30 +553,25 @@ setActivePage("My Bookings");
               Add Game
             </button>
           )}
-
         </div>
-
       ) : (
-
         <div className="games-grid">
-
           {filtered.map((game) => {
-
             const status = (
               game.status || "active"
             ).toLowerCase();
 
-            {/* const isAvailable = status === "active"; */}
+            const gamePrice = Number(
+              game.price || 0
+            );
 
             return (
               <div
                 className="game-card"
                 key={game.id}
               >
-
                 {/* CARD TOP */}
                 <div className="game-card-top">
-
                   <div className="game-icon">
                     <Gamepad2 size={20} />
                   </div>
@@ -566,12 +581,10 @@ setActivePage("My Bookings");
                   >
                     {status}
                   </span>
-
                 </div>
 
                 {/* CARD CONTENT */}
                 <div className="game-card-content">
-
                   <h3>
                     {game.game_name || game.name}
                   </h3>
@@ -599,17 +612,19 @@ setActivePage("My Bookings");
                     </p>
                   )}
 
+                  <p className="game-price">
+                    ₹{gamePrice.toFixed(2)}
+                  </p>
+
                   {game.description && (
                     <p className="game-description">
                       {game.description}
                     </p>
                   )}
-
                 </div>
 
                 {/* CARD FOOTER */}
                 <div className="game-card-footer">
-
                   <span
                     className={
                       status === "active"
@@ -632,9 +647,7 @@ setActivePage("My Bookings");
 
                   {/* ADMIN */}
                   {canManageGames ? (
-
                     <div className="game-actions">
-
                       <button
                         className="game-manage-btn"
                         onClick={() =>
@@ -660,12 +673,8 @@ setActivePage("My Bookings");
                           <Trash2 size={14} />
                         </button>
                       )}
-
                     </div>
-
                   ) : (
-
-                    /* PLAYER / STAFF */
                     <button
                       type="button"
                       className="game-view-btn"
@@ -675,24 +684,16 @@ setActivePage("My Bookings");
                     >
                       View
                     </button>
-
                   )}
-
                 </div>
-
               </div>
             );
           })}
-
         </div>
       )}
 
-      {/* ==================================================
-          ADD / EDIT GAME MODAL
-      ================================================== */}
-
+      {/* ADD / EDIT GAME MODAL */}
       {modalOpen && (
-
         <div
           className="games-modal-overlay"
           onMouseDown={(e) => {
@@ -701,19 +702,14 @@ setActivePage("My Bookings");
             }
           }}
         >
-
           <div
             className="games-modal"
             onMouseDown={(e) =>
               e.stopPropagation()
             }
           >
-
-            {/* MODAL HEADER */}
             <div className="games-modal-header">
-
               <div>
-
                 <h2>
                   {editingGame
                     ? "Edit Game"
@@ -725,7 +721,6 @@ setActivePage("My Bookings");
                     ? "Update game information"
                     : "Add a new game to the library"}
                 </p>
-
               </div>
 
               <button
@@ -737,18 +732,13 @@ setActivePage("My Bookings");
               >
                 <X size={18} />
               </button>
-
             </div>
 
-            {/* FORM */}
             <form
               className="games-form"
               onSubmit={handleSubmit}
             >
-
-              {/* GAME NAME */}
               <div className="games-form-group">
-
                 <label>
                   Game Name <span>*</span>
                 </label>
@@ -767,14 +757,10 @@ setActivePage("My Bookings");
                     {formErrors.game_name}
                   </span>
                 )}
-
               </div>
 
-              {/* PLATFORM + TYPE */}
               <div className="games-form-row">
-
                 <div className="games-form-group">
-
                   <label>
                     Platform <span>*</span>
                   </label>
@@ -785,7 +771,6 @@ setActivePage("My Bookings");
                     onChange={handleChange}
                     disabled={saving}
                   >
-
                     <option value="">
                       Select platform
                     </option>
@@ -803,7 +788,6 @@ setActivePage("My Bookings");
                           {platform.name}
                         </option>
                       ))}
-
                   </select>
 
                   {formErrors.platform_id && (
@@ -811,11 +795,9 @@ setActivePage("My Bookings");
                       {formErrors.platform_id}
                     </span>
                   )}
-
                 </div>
 
                 <div className="games-form-group">
-
                   <label>
                     Game Type <span>*</span>
                   </label>
@@ -826,7 +808,6 @@ setActivePage("My Bookings");
                     onChange={handleChange}
                     disabled={saving}
                   >
-
                     <option value="">
                       Select game type
                     </option>
@@ -844,7 +825,6 @@ setActivePage("My Bookings");
                           {gameType.type_name}
                         </option>
                       ))}
-
                   </select>
 
                   {formErrors.game_type_id && (
@@ -852,19 +832,12 @@ setActivePage("My Bookings");
                       {formErrors.game_type_id}
                     </span>
                   )}
-
                 </div>
-
               </div>
 
-              {/* GENRE + STATUS */}
               <div className="games-form-row">
-
                 <div className="games-form-group">
-
-                  <label>
-                    Genre
-                  </label>
+                  <label>Genre</label>
 
                   <input
                     type="text"
@@ -874,42 +847,57 @@ setActivePage("My Bookings");
                     placeholder="e.g. Action, Sports"
                     disabled={saving}
                   />
-
                 </div>
 
                 <div className="games-form-group">
-
                   <label>
-                    Status
+                    Price <span>*</span>
                   </label>
 
-                  <select
-                    name="status"
-                    value={formData.status}
+                  <input
+                    type="number"
+                    name="price"
+                    value={formData.price}
                     onChange={handleChange}
+                    placeholder="e.g. 500"
+                    min="0"
+                    step="0.01"
                     disabled={saving}
-                  >
+                  />
 
-                    <option value="active">
-                      Active
-                    </option>
-
-                    <option value="inactive">
-                      Inactive
-                    </option>
-
-                  </select>
-
+                  {formErrors.price && (
+                    <span className="games-form-error">
+                      {formErrors.price}
+                    </span>
+                  )}
                 </div>
-
               </div>
 
-              {/* DESCRIPTION */}
               <div className="games-form-group">
+                <label>Status</label>
 
-                <label>
-                  Description
-                </label>
+                <select
+                  name="status"
+                  value={formData.status}
+                  onChange={handleChange}
+                  disabled={saving}
+                >
+                  <option value="active">
+                    Active
+                  </option>
+
+                  <option value="inactive">
+                    Inactive
+                  </option>
+
+                  <option value="maintenance">
+                    Maintenance
+                  </option>
+                </select>
+              </div>
+
+              <div className="games-form-group">
+                <label>Description</label>
 
                 <textarea
                   name="description"
@@ -919,12 +907,9 @@ setActivePage("My Bookings");
                   rows="4"
                   disabled={saving}
                 />
-
               </div>
 
-              {/* FORM ACTIONS */}
               <div className="games-form-actions">
-
                 <button
                   type="button"
                   className="games-cancel-btn"
@@ -945,22 +930,14 @@ setActivePage("My Bookings");
                       ? "Update Game"
                       : "Save Game"}
                 </button>
-
               </div>
-
             </form>
-
           </div>
-
         </div>
       )}
 
-      {/* ==================================================
-          PLAYER / STAFF GAME DETAILS MODAL
-      ================================================== */}
-
+      {/* PLAYER / STAFF GAME DETAILS MODAL */}
       {viewGame && (
-
         <div
           className="games-modal-overlay"
           onMouseDown={(e) => {
@@ -969,27 +946,19 @@ setActivePage("My Bookings");
             }
           }}
         >
-
           <div
             className="games-modal games-view-modal"
             onMouseDown={(e) =>
               e.stopPropagation()
             }
           >
-
-            {/* HEADER */}
             <div className="games-modal-header">
-
               <div>
-
-                <h2>
-                  Game Details
-                </h2>
+                <h2>Game Details</h2>
 
                 <p>
                   View game information
                 </p>
-
               </div>
 
               <button
@@ -1000,12 +969,9 @@ setActivePage("My Bookings");
               >
                 <X size={18} />
               </button>
-
             </div>
 
-            {/* GAME DETAILS */}
             <div className="games-view-content">
-
               <div className="games-view-icon">
                 <Gamepad2 size={26} />
               </div>
@@ -1024,7 +990,6 @@ setActivePage("My Bookings");
               </span>
 
               <div className="games-view-details">
-
                 <div>
                   <span>Game ID</span>
                   <strong>
@@ -1055,29 +1020,29 @@ setActivePage("My Bookings");
                   </strong>
                 </div>
 
+                <div>
+                  <span>Price</span>
+                  <strong>
+                    ₹
+                    {Number(
+                      viewGame.price || 0
+                    ).toFixed(2)}
+                  </strong>
+                </div>
               </div>
 
               {viewGame.description && (
-
                 <div className="games-view-description">
-
-                  <span>
-                    Description
-                  </span>
+                  <span>Description</span>
 
                   <p>
                     {viewGame.description}
                   </p>
-
                 </div>
-
               )}
-
             </div>
 
-            {/* ACTIONS */}
             <div className="games-form-actions">
-
               <button
                 type="button"
                 className="games-cancel-btn"
@@ -1088,7 +1053,6 @@ setActivePage("My Bookings");
 
               {canBookGame &&
                 viewGame.status === "active" && (
-
                   <button
                     type="button"
                     className="games-save-btn"
@@ -1099,17 +1063,11 @@ setActivePage("My Bookings");
                     <CalendarDays size={16} />
                     Book Now
                   </button>
-
                 )}
-
             </div>
-
           </div>
-
         </div>
-
       )}
-
     </div>
   );
 }
