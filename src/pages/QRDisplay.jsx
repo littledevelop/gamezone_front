@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
-
+import api from "../api/axios";
 function QRDisplay({ qrCode }) {
     const [data, setData] = useState(null);
     const [qrImage, setQrImage] = useState("");
@@ -10,22 +10,21 @@ function QRDisplay({ qrCode }) {
     useEffect(() => {
         const loadQR = async () => {
             try {
-                const response = await fetch(
-                    `/api/qr-codes/video/${qrCode}`
+                const response = await api.get(
+                    `/qr-codes/video/${qrCode}`
                 );
 
-                const result = await response.json();
-
+                const result = response.data;
                 if (result.success) {
                     const qrData = result.data;
-                    
+
                     setData(qrData);
 
                     const videoUrl =
                         `${window.location.origin}/video/${qrCode}`;
 
-    //                 const videoUrl =
-    // `http://10.173.94.209:5173/video/${qrCode}`;
+                    //                 const videoUrl =
+                    // `http://10.173.94.209:5173/video/${qrCode}`;
 
                     const image = await QRCode.toDataURL(videoUrl, {
                         width: 500,
@@ -35,7 +34,7 @@ function QRDisplay({ qrCode }) {
                     setQrImage(image);
                 } else {
                     setError(
-                        response.data.message || "QR code unavailable"
+                        result.message || "QR code unavailable"
                     );
                 }
             } catch (err) {
