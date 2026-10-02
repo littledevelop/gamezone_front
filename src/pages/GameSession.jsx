@@ -350,13 +350,15 @@ const handleGenerateQRCode = async () => {
         );
 
         if (response.data.success) {
-            const qrCode =
+            // const qrCode =
                 response.data.data.qr_code;
 
-            window.open(
-                `/qr/${qrCode}`,
-                "_blank"
-            );
+            // window.open(
+            //     `/qr/${qrCode}`,
+            //     "_blank"
+            // );
+
+            alert("QR code generated successfully. QR Display will update automatically.");
         } else {
             alert(
                 response.data.message ||
