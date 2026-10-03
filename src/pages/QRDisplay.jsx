@@ -75,8 +75,9 @@ function QRDisplay({ qrCode }) {
                 justifyContent: "center",
                 alignItems: "center",
                 textAlign: "center",
-                padding: "30px",
+                padding: "20px",
                 boxSizing: "border-box",
+                width: "100%",
             }}
         >
             <div>
@@ -87,16 +88,20 @@ function QRDisplay({ qrCode }) {
                         src={qrImage}
                         alt="Video QR Code"
                         style={{
-                            width: "500px",
-                            maxWidth: "80vw",
+                            width: "min(500px, 85vw)",
+                            maxWidth: "100%",
                             height: "auto",
+                            display: "block",
+                            margin: "0 auto",
                         }}
                     />
                 )}
 
                 <h2>{data.game_name}</h2>
 
-                <p>
+                <p style={{
+                    overflowWrap: "anywhere",
+                }}>
                     <strong>Player:</strong> {data.player_name}
                 </p>
 

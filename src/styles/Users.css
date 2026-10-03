@@ -1,10 +1,110 @@
 /* =====================================================
-   USER MANAGEMENT
+   USERS TABLE
+===================================================== */
+
+.users-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    background: #ffffff;
+}
+
+.users-table {
+    width: 100%;
+    min-width: 850px;
+    border-collapse: collapse;
+    table-layout: auto;
+}
+
+.users-table th {
+    padding: 14px 16px;
+    background: #f5f7f2;
+    color: #070a3a;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.users-table td {
+    padding: 14px 16px;
+    color: #374151;
+    font-size: 13px;
+    vertical-align: middle;
+    border-bottom: 1px solid #edf0ed;
+}
+
+.users-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.users-table tbody tr:hover {
+    background: #fafcf9;
+}
+
+/* =====================================================
+   COLUMN STYLES
+===================================================== */
+
+.user-id {
+    width: 60px;
+    color: #6b7280 !important;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.user-name {
+    min-width: 150px;
+    color: #070a3a !important;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.user-phone {
+    min-width: 130px;
+    white-space: nowrap;
+}
+
+.user-email {
+    min-width: 210px;
+    color: #4b5563 !important;
+    white-space: nowrap;
+}
+
+.user-actions {
+    width: 110px;
+    text-align: center !important;
+    white-space: nowrap;
+}
+
+/* =====================================================
+   ROLE
+===================================================== */
+
+.user-role {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 65px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    background: #e9ffd9;
+    color: #256000;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* =====================================================
+   EDIT BUTTON
 ===================================================== */
 
 .user-edit-btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     padding: 7px 12px;
     border: 1px solid #dfe5df;
@@ -23,35 +123,51 @@
 }
 
 /* =====================================================
-   MODAL
+   MODAL OVERLAY
 ===================================================== */
 
 .user-modal-overlay {
     position: fixed;
     inset: 0;
     z-index: 9999;
+
     display: flex;
     align-items: center;
     justify-content: center;
+
     padding: 20px;
+
     background: rgba(5, 8, 45, 0.65);
 }
+
+/* =====================================================
+   MODAL
+===================================================== */
 
 .user-modal {
     width: 100%;
     max-width: 680px;
     max-height: 90vh;
+
     overflow-y: auto;
+
     background: #ffffff;
     border-radius: 12px;
+
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
 }
+
+/* =====================================================
+   MODAL HEADER
+===================================================== */
 
 .user-modal-header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
+
     padding: 20px 24px;
+
     border-bottom: 1px solid #e8ece8;
 }
 
@@ -71,18 +187,26 @@
     display: flex;
     align-items: center;
     justify-content: center;
+
     width: 34px;
     height: 34px;
+
     border: none;
     border-radius: 7px;
+
     background: #f5f7f2;
     color: #070a3a;
+
     cursor: pointer;
 }
 
 .user-modal-close:hover {
     background: #e9ffd9;
 }
+
+/* =====================================================
+   MODAL BODY
+===================================================== */
 
 .user-modal-body {
     padding: 24px;
@@ -94,21 +218,29 @@
     font-weight: 400;
 }
 
+/* =====================================================
+   MODAL ACTIONS
+===================================================== */
+
 .user-modal-actions {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-    margin-top: 24px;
-    padding-top: 18px;
+
+    padding: 18px 24px 24px;
+
     border-top: 1px solid #e8ece8;
 }
 
 .user-cancel-btn {
     padding: 10px 18px;
+
     border: 1px solid #dfe5df;
     border-radius: 7px;
+
     background: #ffffff;
     color: #333;
+
     font-weight: 600;
     cursor: pointer;
 }
@@ -117,29 +249,44 @@
     background: #f5f7f2;
 }
 
+.user-cancel-btn:disabled,
+.user-edit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 /* =====================================================
    RESPONSIVE
 ===================================================== */
 
 @media (max-width: 700px) {
+
+    .users-table-wrapper {
+        overflow-x: auto;
+    }
+
+    .users-table {
+        min-width: 850px;
+    }
+
     .user-modal-overlay {
         padding: 12px;
     }
 
-    .user-modal-header,
+    .user-modal-header {
+        padding: 18px;
+    }
+
     .user-modal-body {
         padding: 18px;
     }
 
     .user-modal-actions {
         flex-direction: column-reverse;
+        padding: 18px;
     }
 
     .user-modal-actions button {
         width: 100%;
-    }
-
-    .table-container {
-        overflow-x: auto;
     }
 }

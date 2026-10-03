@@ -42,16 +42,16 @@ function QRKiosk() {
     };
 
     useEffect(() => {
-    const checkQR = async () => {
-        await loadLatestQR();
-    };
+        const checkQR = async () => {
+            await loadLatestQR();
+        };
 
-    checkQR();
+        checkQR();
 
-    const interval = setInterval(checkQR, 5000);
+        const interval = setInterval(checkQR, 5000);
 
-    return () => clearInterval(interval);
-}, []);
+        return () => clearInterval(interval);
+    }, []);
 
     if (loading) {
         return (
@@ -133,24 +133,28 @@ const styles = {
         justifyContent: "center",
         alignItems: "center",
         textAlign: "center",
-        padding: "30px",
+        padding: "20px",
         boxSizing: "border-box",
+        width: "100%",
         color: "white",
     },
 
     card: {
         background: "white",
         color: "#070A3A",
-        padding: "30px",
+        padding: "24px 20px",
         borderRadius: "20px",
         maxWidth: "700px",
         width: "100%",
+        boxSizing: "border-box",
     },
 
     qr: {
-        width: "600px",
-        maxWidth: "80vw",
+        width: "min(600px, 85vw)",
+        maxWidth: "100%",
         height: "auto",
+        display: "block",
+        margin: "0 auto",
     },
 
     center: {
