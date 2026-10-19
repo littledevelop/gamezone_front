@@ -4,15 +4,14 @@ import "../styles/Booking.css";
 import { isAdminOrStaff } from "../utils/auth";
 import {
   BadgePlus,
-  Check,
   X,
   Pencil,
 } from "lucide-react";
 
 function Booking() {
-  // ==================================================
+  // =========================================================
   // USER / ROLE
-  // ==================================================
+  // =========================================================
 
   const user = JSON.parse(
     localStorage.getItem("user") || "{}"
@@ -24,34 +23,32 @@ function Booking() {
   const canManageBooking = isAdminOrStaff();
   const isPlayer = role === "Player";
 
-  // ==================================================
+  // =========================================================
   // STATE
-  // ==================================================
+  // =========================================================
 
   const [message, setMessage] = useState("");
-  const [bookingMessage, setBookingMessage] =
-    useState("");
+  const [bookingMessage, setBookingMessage] = useState("");
 
   const [bookings, setBookings] = useState([]);
-  const [memberships, setMemberships] =
-    useState([]);
+  const [memberships, setMemberships] = useState([]);
   const [games, setGames] = useState([]);
   const [stations, setStations] = useState([]);
 
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
 
-  const [selectedBooking, setSelectedBooking] =
-    useState(null);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [detailsLoading, setDetailsLoading] = useState(false);
 
-  const [detailsLoading, setDetailsLoading] =
-    useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(null);
 
-  const [updatingStatus, setUpdatingStatus] =
-    useState(null);
+  const [editingBooking, setEditingBooking] = useState(null);
 
-  const [editingBooking, setEditingBooking] =
-    useState(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+
+  const [membershipTypeName, setMembershipTypeName] =
+    useState("");
 
   const [bookingForm, setBookingForm] = useState({
     user_id:
@@ -66,31 +63,17 @@ function Booking() {
     end_time: "",
   });
 
-  const [showCreateForm, setShowCreateForm] =
-    useState(false);
-
-  const [membershipTypeName, setMembershipTypeName] =
-    useState("");
-
-  // ==================================================
-  // CREATE FORM PERMISSION
-  // ==================================================
-  //
-  // IMPORTANT:
-  // Player can open Create Booking form from
-  // "My Bookings" when showCreateForm is true.
-  //
-  // Directly opening My Bookings keeps the form
-  // hidden because showCreateForm is false.
-  // ==================================================
+  // =========================================================
+  // PERMISSIONS
+  // =========================================================
 
   const canCreateBooking =
     canManageBooking ||
     (isPlayer && showCreateForm);
 
-  // ==================================================
+  // =========================================================
   // TODAY
-  // ==================================================
+  // =========================================================
 
   const today = new Date();
 
@@ -101,9 +84,9 @@ function Booking() {
     .toISOString()
     .split("T")[0];
 
-  // ==================================================
-  // BOOKING / PAYMENT HELPERS
-  // ==================================================
+  // =========================================================
+  // HELPERS
+  // =========================================================
 
   const formatAmount = (amount) => {
     const value = Number(amount);
@@ -127,9 +110,9 @@ function Booking() {
     return "Payment Pending";
   };
 
-  // ==================================================
-  // HANDLE FORM CHANGE
-  // ==================================================
+  // =========================================================
+  // FORM CHANGE
+  // =========================================================
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -147,18 +130,13 @@ function Booking() {
       }));
     }
 
-    if (message) {
-      setMessage("");
-    }
-
-    if (bookingMessage) {
-      setBookingMessage("");
-    }
+    setMessage("");
+    setBookingMessage("");
   };
 
-  // ==================================================
+  // =========================================================
   // RESET FORM
-  // ==================================================
+  // =========================================================
 
   const resetForm = () => {
     setBookingForm({
@@ -176,16 +154,14 @@ function Booking() {
 
     setEditingBooking(null);
 
-    // Player closes the form after successful
-    // create/update/cancel edit.
     if (isPlayer) {
       setShowCreateForm(false);
     }
   };
 
-  // ==================================================
+  // =========================================================
   // FETCH BOOKINGS
-  // ==================================================
+  // =========================================================
 
   const fetchBookings = useCallback(async () => {
     try {
@@ -196,16 +172,14 @@ function Booking() {
         return;
       }
 
-      const allBookings =
-        res.data.bookings || [];
+      const allBookings = res.data.bookings || [];
 
       if (isPlayer) {
-        const myBookings =
-          allBookings.filter(
-            (booking) =>
-              Number(booking.user_id) ===
-              Number(userId)
-          );
+        const myBookings = allBookings.filter(
+          (booking) =>
+            Number(booking.user_id) ===
+            Number(userId)
+        );
 
         setBookings(myBookings);
       } else {
@@ -223,85 +197,77 @@ function Booking() {
     }
   }, [isPlayer, userId]);
 
-  // ==================================================
-  // FETCH MEMBERSHIPS
-  // ==================================================
+  // =========================================================
+  // FETCH MEMBERSHIPS - ADMIN / STAFF
+  // =========================================================
 
-  const fetchMemberships = useCallback(
-    async () => {
-      if (!canManageBooking) return;
+  const fetchMemberships = useCallback(async () => {
+    if (!canManageBooking) return;
 
-      try {
-        const res = await api.get(
-          "/memberships"
-        );
+    try {
+      const res = await api.get("/memberships");
 
-        if (res.data.success) {
-          setMemberships(
-            res.data.memberships || []
-          );
-        }
-      } catch (error) {
-        console.error(
-          "Fetch memberships error:",
-          error
+      if (res.data.success) {
+        setMemberships(
+          res.data.memberships || []
         );
       }
-    },
-    [canManageBooking]
-  );
+    } catch (error) {
+      console.error(
+        "Fetch memberships error:",
+        error
+      );
+    }
+  }, [canManageBooking]);
 
-  // ==================================================
+  // =========================================================
   // FETCH PLAYER MEMBERSHIP
-  // ==================================================
+  // =========================================================
 
-  const fetchMyMembership = useCallback(
-    async () => {
-      if (!isPlayer) return;
+  const fetchMyMembership = useCallback(async () => {
+    if (!isPlayer) return;
 
-      try {
-        const res = await api.get(
-          "/memberships/my-membership"
+    try {
+      const res = await api.get(
+        "/memberships/my-membership"
+      );
+
+      if (
+        res.data.success &&
+        res.data.membership
+      ) {
+        const membership =
+          res.data.membership;
+
+        setBookingForm((prev) => ({
+          ...prev,
+          membership_id: membership.id
+            ? String(membership.id)
+            : "",
+        }));
+
+        setMembershipTypeName(
+          membership.membership_type_name ||
+            membership.membership_type ||
+            membership.type_name ||
+            "Active Membership"
         );
-
-        if (
-          res.data.success &&
-          res.data.membership
-        ) {
-          const membership =
-            res.data.membership;
-
-          setBookingForm((prev) => ({
-            ...prev,
-            membership_id: membership.id
-              ? String(membership.id)
-              : "",
-          }));
-
-          setMembershipTypeName(
-            membership.membership_type_name ||
-              membership.membership_type ||
-              membership.type_name ||
-              "Active Membership"
-          );
-        } else {
-          setMembershipTypeName("");
-        }
-      } catch (error) {
-        console.error(
-          "Fetch my membership error:",
-          error
-        );
-
+      } else {
         setMembershipTypeName("");
       }
-    },
-    [isPlayer]
-  );
+    } catch (error) {
+      console.error(
+        "Fetch my membership error:",
+        error
+      );
 
-  // ==================================================
+      setMembershipTypeName("");
+    }
+  }, [isPlayer]);
+
+  // =========================================================
   // FETCH GAMES
-  // ==================================================
+  // =========================================================
 
   const fetchGames = useCallback(async () => {
     try {
@@ -318,37 +284,34 @@ function Booking() {
     }
   }, []);
 
-  // ==================================================
+  // =========================================================
   // FETCH GAMING STATIONS
-  // ==================================================
+  // =========================================================
 
-  const fetchStations = useCallback(
-    async () => {
-      try {
-        const res = await api.get(
-          "/gaming-stations"
-        );
+  const fetchStations = useCallback(async () => {
+    try {
+      const res = await api.get(
+        "/gaming-stations"
+      );
 
-        if (res.data.success) {
-          setStations(
-            res.data.data ||
-              res.data.stations ||
-              []
-          );
-        }
-      } catch (error) {
-        console.error(
-          "Fetch stations error:",
-          error
+      if (res.data.success) {
+        setStations(
+          res.data.data ||
+            res.data.stations ||
+            []
         );
       }
-    },
-    []
-  );
+    } catch (error) {
+      console.error(
+        "Fetch stations error:",
+        error
+      );
+    }
+  }, []);
 
-  // ==================================================
+  // =========================================================
   // LOAD GAME SELECTED FROM GAMES PAGE
-  // ==================================================
+  // =========================================================
 
   const loadSelectedGame = useCallback(() => {
     const shouldOpenCreate =
@@ -398,9 +361,9 @@ function Booking() {
     }
   }, [isPlayer]);
 
-  // ==================================================
+  // =========================================================
   // GET BOOKING DETAILS
-  // ==================================================
+  // =========================================================
 
   const getBookingById = async (id) => {
     try {
@@ -423,6 +386,11 @@ function Booking() {
         );
       }
     } catch (error) {
+      console.error(
+        "Get booking details error:",
+        error
+      );
+
       setMessage(
         error.response?.data?.message ||
           "Failed to load booking details."
@@ -432,9 +400,9 @@ function Booking() {
     }
   };
 
-  // ==================================================
-  // PAY NOW
-  // ==================================================
+  // =========================================================
+  // PLAYER - PAY NOW
+  // =========================================================
 
   const handlePayNow = async (booking) => {
     if (!booking?.id) return;
@@ -503,6 +471,11 @@ function Booking() {
         );
       }
     } catch (error) {
+      console.error(
+        "Player payment error:",
+        error
+      );
+
       setBookingMessage(
         error.response?.data?.message ||
           "Unable to process payment."
@@ -512,9 +485,100 @@ function Booking() {
     }
   };
 
-  // ==================================================
+  // =========================================================
+  // ADMIN / STAFF - COLLECT PAYMENT
+  // =========================================================
+
+  const handleAdminPayment = async (booking) => {
+    if (!booking?.id) return;
+
+    if (
+      booking.status === "cancelled" ||
+      booking.status === "completed"
+    ) {
+      setBookingMessage(
+        "Payment is not allowed for this booking."
+      );
+      return;
+    }
+
+    if (booking.payment_status === "paid") {
+      setBookingMessage(
+        "Payment has already been completed."
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Collect ${formatAmount(
+        booking.amount
+      )} payment for Booking #${booking.id}?`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setBookingMessage("");
+      setUpdatingStatus(booking.id);
+
+      const res = await api.post(
+        "/payments",
+        {
+          user_id: booking.user_id,
+          booking_id: booking.id,
+          amount: booking.amount,
+          payment_method: "cash",
+          payment_status: "completed",
+          notes:
+            "Payment collected by Admin/Staff",
+        }
+      );
+
+      if (res.data.success) {
+        setBookingMessage(
+          "Payment completed successfully. Booking confirmed."
+        );
+
+        await fetchBookings();
+
+        if (
+          selectedBooking?.id === booking.id
+        ) {
+          const detailRes =
+            await api.get(
+              `/booking/${booking.id}`
+            );
+
+          if (detailRes.data.success) {
+            setSelectedBooking(
+              detailRes.data.booking
+            );
+          }
+        }
+      } else {
+        setBookingMessage(
+          res.data.message ||
+            "Unable to complete payment."
+        );
+      }
+    } catch (error) {
+      console.error(
+        "Admin payment error:",
+        error
+      );
+
+      setBookingMessage(
+        error.response?.data?.message ||
+          "Unable to process payment."
+      );
+    } finally {
+      setUpdatingStatus(null);
+    }
+  };
+
+  // =========================================================
   // UPDATE BOOKING STATUS
-  // ==================================================
+  // =========================================================
 
   const updateBookingStatus = async (
     id,
@@ -531,9 +595,9 @@ function Booking() {
 
       if (res.data.success) {
         setBookingMessage(
-          status === "confirmed"
-            ? "Booking confirmed successfully."
-            : "Booking cancelled successfully."
+          status === "cancelled"
+            ? "Booking cancelled successfully."
+            : "Booking status updated successfully."
         );
 
         await fetchBookings();
@@ -557,6 +621,11 @@ function Booking() {
         );
       }
     } catch (error) {
+      console.error(
+        "Update booking status error:",
+        error
+      );
+
       setBookingMessage(
         error.response?.data?.message ||
           "Unable to update booking status."
@@ -566,44 +635,15 @@ function Booking() {
     }
   };
 
-  // ==================================================
-  // CONFIRM BOOKING
-  // ==================================================
-
-  const handleConfirmBooking = (booking) => {
-    if (!booking?.id) return;
-
-    if (booking.payment_status !== "paid") {
-      setBookingMessage(
-        "Please complete the payment before confirming this booking."
-      );
-
-      return;
-    }
-
-    const confirmed = window.confirm(
-      "Are you sure you want to confirm this booking?"
-    );
-
-    if (!confirmed) return;
-
-    updateBookingStatus(
-      booking.id,
-      "confirmed"
-    );
-  };
-
-  // ==================================================
+  // =========================================================
   // CANCEL BOOKING
-  // ==================================================
+  // Only pending bookings can be cancelled.
+  // =========================================================
 
   const handleCancelBooking = (booking) => {
     if (!booking?.id) return;
 
-    if (
-      booking.status === "cancelled" ||
-      booking.status === "completed"
-    ) {
+    if (booking.status !== "pending") {
       return;
     }
 
@@ -619,9 +659,9 @@ function Booking() {
     );
   };
 
-  // ==================================================
-  // VALIDATE FORM
-  // ==================================================
+  // =========================================================
+  // VALIDATE BOOKING FORM
+  // =========================================================
 
   const validateBookingForm = () => {
     if (
@@ -664,9 +704,9 @@ function Booking() {
     return true;
   };
 
-  // ==================================================
+  // =========================================================
   // CREATE BOOKING
-  // ==================================================
+  // =========================================================
 
   const createBooking = async (e) => {
     e.preventDefault();
@@ -698,6 +738,11 @@ function Booking() {
         );
       }
     } catch (error) {
+      console.error(
+        "Create booking error:",
+        error
+      );
+
       setMessage(
         error.response?.data?.message ||
           "Unable to create booking."
@@ -707,9 +752,9 @@ function Booking() {
     }
   };
 
-  // ==================================================
+  // =========================================================
   // EDIT BOOKING
-  // ==================================================
+  // =========================================================
 
   const editBooking = async (e) => {
     e.preventDefault();
@@ -749,6 +794,11 @@ function Booking() {
         );
       }
     } catch (error) {
+      console.error(
+        "Edit booking error:",
+        error
+      );
+
       setMessage(
         error.response?.data?.message ||
           "Unable to update booking."
@@ -758,9 +808,9 @@ function Booking() {
     }
   };
 
-  // ==================================================
-  // EDIT BOOKING - LOAD DETAILS
-  // ==================================================
+  // =========================================================
+  // LOAD BOOKING FOR EDIT
+  // =========================================================
 
   const handleEditBooking = async (
     booking
@@ -798,9 +848,7 @@ function Booking() {
 
           booking_date:
             data.booking_date
-              ? data.booking_date.split(
-                  "T"
-                )[0]
+              ? data.booking_date.split("T")[0]
               : "",
 
           start_time:
@@ -823,6 +871,11 @@ function Booking() {
         );
       }
     } catch (error) {
+      console.error(
+        "Edit booking load error:",
+        error
+      );
+
       setMessage(
         error.response?.data?.message ||
           "Failed to load booking for editing."
@@ -830,9 +883,9 @@ function Booking() {
     }
   };
 
-  // ==================================================
+  // =========================================================
   // INITIAL DATA
-  // ==================================================
+  // =========================================================
 
   useEffect(() => {
     const loadData = async () => {
@@ -846,7 +899,6 @@ function Booking() {
         fetchStations(),
       ]);
 
-      // Check whether user came from Games -> Book Now
       loadSelectedGame();
 
       setLoading(false);
@@ -862,65 +914,60 @@ function Booking() {
     loadSelectedGame,
   ]);
 
-  // ==================================================
-  // PLAYERS
-  // ==================================================
+  // =========================================================
+  // DERIVED DATA
+  // =========================================================
 
   const players = memberships.filter(
-    (m, index, self) =>
+    (membership, index, self) =>
       index ===
       self.findIndex(
         (item) =>
           Number(item.user_id) ===
-          Number(m.user_id)
+          Number(membership.user_id)
       )
   );
 
-  // ==================================================
-  // SELECTED PLAYER MEMBERSHIPS
-  // ==================================================
-
   const playerMemberships =
     memberships.filter(
-      (m) =>
-        Number(m.user_id) ===
+      (membership) =>
+        Number(membership.user_id) ===
           Number(bookingForm.user_id) &&
-        m.status === "active"
+        membership.status === "active"
     );
-
-  // ==================================================
-  // AVAILABLE STATIONS
-  // ==================================================
 
   const availableStations =
     stations.filter(
-      (s) =>
-        s.status !== "maintenance"
+      (station) =>
+        station.status !== "maintenance"
     );
 
-  // ==================================================
+  // =========================================================
   // LOADING
-  // ==================================================
+  // =========================================================
 
   if (loading) {
     return (
       <div className="booking-page">
         <div className="booking-loading">
           <div className="loading-spinner"></div>
-
           <p>Loading bookings...</p>
         </div>
       </div>
     );
   }
 
-  // ==================================================
+  // =========================================================
   // UI
-  // ==================================================
+  // =========================================================
 
   return (
     <div className="booking-page">
-      {/* PAGE HEADER */}
+
+      {/* =====================================================
+          PAGE HEADER
+      ===================================================== */}
+
       <div className="booking-header">
         <div>
           <h1>
@@ -937,9 +984,13 @@ function Booking() {
         </div>
       </div>
 
-      {/* CREATE / EDIT BOOKING */}
+      {/* =====================================================
+          CREATE / EDIT BOOKING
+      ===================================================== */}
+
       {canCreateBooking && (
         <div className="booking-card">
+
           <div className="card-header">
             <div>
               <h2>
@@ -967,16 +1018,16 @@ function Booking() {
             className="booking-form"
             noValidate
           >
+
             {/* PLAYER */}
+
             {canManageBooking ? (
               <div className="form-group">
                 <label>Player</label>
 
                 <select
                   name="user_id"
-                  value={
-                    bookingForm.user_id
-                  }
+                  value={bookingForm.user_id}
                   onChange={handleChange}
                   required
                 >
@@ -985,12 +1036,12 @@ function Booking() {
                   </option>
 
                   {players.length > 0 ? (
-                    players.map((p) => (
+                    players.map((player) => (
                       <option
-                        key={p.user_id}
-                        value={p.user_id}
+                        key={player.user_id}
+                        value={player.user_id}
                       >
-                        {p.full_name}
+                        {player.full_name}
                       </option>
                     ))
                   ) : (
@@ -1017,6 +1068,7 @@ function Booking() {
             )}
 
             {/* MEMBERSHIP */}
+
             <div className="form-group">
               <label>Membership</label>
 
@@ -1037,17 +1089,17 @@ function Booking() {
                     </option>
 
                     {playerMemberships.map(
-                      (m) => (
+                      (membership) => (
                         <option
-                          key={m.id}
-                          value={m.id}
+                          key={membership.id}
+                          value={membership.id}
                         >
                           {
-                            m.membership_type_name
+                            membership.membership_type_name
                           }
 
-                          {m.price
-                            ? ` - ₹${m.price}`
+                          {membership.price
+                            ? ` - ₹${membership.price}`
                             : ""}
                         </option>
                       )
@@ -1094,6 +1146,7 @@ function Booking() {
             </div>
 
             {/* GAME */}
+
             <div className="form-group">
               <label>Game</label>
 
@@ -1107,17 +1160,17 @@ function Booking() {
                   Select Game
                 </option>
 
-                {games.map((g) => (
+                {games.map((game) => (
                   <option
-                    key={g.id}
-                    value={g.id}
+                    key={game.id}
+                    value={game.id}
                     disabled={
-                      g.status !== "active"
+                      game.status !== "active"
                     }
                   >
-                    {g.game_name}
+                    {game.game_name}
 
-                    {g.status !== "active"
+                    {game.status !== "active"
                       ? " (Inactive)"
                       : ""}
                   </option>
@@ -1126,6 +1179,7 @@ function Booking() {
             </div>
 
             {/* GAMING STATION */}
+
             <div className="form-group">
               <label>Gaming Station</label>
 
@@ -1142,13 +1196,13 @@ function Booking() {
                 </option>
 
                 {availableStations.map(
-                  (s) => (
+                  (station) => (
                     <option
-                      key={s.id}
-                      value={s.id}
+                      key={station.id}
+                      value={station.id}
                     >
-                      {s.station_name} -{" "}
-                      {s.status}
+                      {station.station_name} -{" "}
+                      {station.status}
                     </option>
                   )
                 )}
@@ -1156,6 +1210,7 @@ function Booking() {
             </div>
 
             {/* BOOKING DATE */}
+
             <div className="form-group">
               <label>Booking Date</label>
 
@@ -1172,6 +1227,7 @@ function Booking() {
             </div>
 
             {/* START TIME */}
+
             <div className="form-group">
               <label>Start Time</label>
 
@@ -1187,6 +1243,7 @@ function Booking() {
             </div>
 
             {/* END TIME */}
+
             <div className="form-group">
               <label>End Time</label>
 
@@ -1201,7 +1258,8 @@ function Booking() {
               />
             </div>
 
-            {/* MESSAGE */}
+            {/* FORM MESSAGE */}
+
             {message && (
               <div className="booking-message">
                 {message}
@@ -1209,7 +1267,9 @@ function Booking() {
             )}
 
             {/* FORM ACTIONS */}
+
             <div className="form-actions">
+
               {editingBooking && (
                 <button
                   type="button"
@@ -1242,20 +1302,28 @@ function Booking() {
                     ? "Update Booking"
                     : "Create Booking"}
               </button>
+
             </div>
           </form>
         </div>
       )}
 
-      {/* STATUS MESSAGE */}
+      {/* =====================================================
+          STATUS MESSAGE
+      ===================================================== */}
+
       {bookingMessage && (
         <div className="booking-message">
           {bookingMessage}
         </div>
       )}
 
-      {/* BOOKING LIST */}
+      {/* =====================================================
+          BOOKING LIST
+      ===================================================== */}
+
       <div className="booking-list-section">
+
         <div className="section-header">
           <div>
             <h2>
@@ -1269,8 +1337,10 @@ function Booking() {
         </div>
 
         {/* EMPTY */}
+
         {bookings.length === 0 ? (
           <div className="empty-bookings">
+
             <div className="empty-icon">
               🎮
             </div>
@@ -1286,15 +1356,19 @@ function Booking() {
                 ? "Create your first booking using the form above."
                 : "Choose a game from the Games page to create your first booking."}
             </p>
+
           </div>
         ) : (
           <div className="booking-grid">
+
             {bookings.map((booking) => (
               <div
                 className="booking-item"
                 key={booking.id}
               >
+
                 {/* BOOKING HEADER */}
+
                 <div className="booking-item-header">
                   <span className="booking-number">
                     Booking #{booking.id}
@@ -1308,12 +1382,15 @@ function Booking() {
                 </div>
 
                 {/* GAME */}
+
                 <h3>
                   {booking.game_name}
                 </h3>
 
                 {/* DETAILS */}
+
                 <div className="booking-details">
+
                   <div className="detail-row">
                     <span>Player</span>
 
@@ -1380,16 +1457,18 @@ function Booking() {
                       )}
                     </strong>
                   </div>
+
                 </div>
 
-                {/* FOOTER */}
+                {/* BOOKING FOOTER */}
+
                 <div className="booking-item-footer">
-                  {/* PLAYER PAY NOW */}
+
+                  {/* PLAYER PAYMENT */}
+
                   {isPlayer &&
-                    booking.status !==
-                      "cancelled" &&
-                    booking.status !==
-                      "completed" &&
+                    booking.status ===
+                      "pending" &&
                     booking.payment_status !==
                       "paid" && (
                       <button
@@ -1413,6 +1492,7 @@ function Booking() {
                     )}
 
                   {/* VIEW */}
+
                   <button
                     type="button"
                     className="view-details-btn"
@@ -1426,10 +1506,13 @@ function Booking() {
                   </button>
 
                   {/* MANAGEMENT ACTIONS */}
+
                   {(canManageBooking ||
                     isPlayer) && (
                     <div className="booking-actions">
+
                       {/* ADMIN / STAFF EDIT */}
+
                       {canManageBooking &&
                         booking.status !==
                           "cancelled" &&
@@ -1450,41 +1533,44 @@ function Booking() {
                           </button>
                         )}
 
-                      {/* CANCEL */}
-                      {(canManageBooking ||
-                        isPlayer) &&
-                        booking.status !==
-                          "cancelled" &&
-                        booking.status !==
-                          "completed" && (
-                          <button
-                            type="button"
-                            className="cancel-booking-btn icon-action-btn"
-                            onClick={() =>
-                              handleCancelBooking(
-                                booking
-                              )
-                            }
-                            disabled={
-                              updatingStatus ===
-                              booking.id
-                            }
-                            title="Cancel Booking"
-                            aria-label="Cancel Booking"
-                          >
-                            <X size={15} />
-                          </button>
-                        )}
+                      {/* CANCEL - PENDING ONLY */}
+
+                      {booking.status ===
+                        "pending" && (
+                        <button
+                          type="button"
+                          className="cancel-booking-btn icon-action-btn"
+                          onClick={() =>
+                            handleCancelBooking(
+                              booking
+                            )
+                          }
+                          disabled={
+                            updatingStatus ===
+                            booking.id
+                          }
+                          title="Cancel Booking"
+                          aria-label="Cancel Booking"
+                        >
+                          <X size={15} />
+                        </button>
+                      )}
+
                     </div>
                   )}
+
                 </div>
               </div>
             ))}
+
           </div>
         )}
       </div>
 
-      {/* BOOKING DETAILS MODAL */}
+      {/* =====================================================
+          BOOKING DETAILS MODAL
+      ===================================================== */}
+
       {selectedBooking && (
         <div
           className="booking-modal-overlay"
@@ -1492,15 +1578,21 @@ function Booking() {
             setSelectedBooking(null)
           }
         >
+
           <div
             className="booking-modal"
             onClick={(e) =>
               e.stopPropagation()
             }
           >
+
             {/* MODAL HEADER */}
+
             <div className="booking-modal-header">
-              <h2>Booking Details</h2>
+
+              <h2>
+                Booking Details
+              </h2>
 
               <button
                 type="button"
@@ -1511,9 +1603,11 @@ function Booking() {
               >
                 ×
               </button>
+
             </div>
 
             {/* MODAL BODY */}
+
             {detailsLoading ? (
               <div
                 className="booking-loading"
@@ -1527,6 +1621,7 @@ function Booking() {
               </div>
             ) : (
               <div className="booking-modal-body">
+
                 <div className="modal-detail-row">
                   <span>Booking ID</span>
 
@@ -1621,27 +1716,71 @@ function Booking() {
                   </span>
                 </div>
 
-                {/* PAYMENT INFORMATION */}
+                {/* =================================================
+                    PAYMENT REQUIRED
+                ================================================= */}
+
                 {selectedBooking.status ===
                   "pending" &&
                   selectedBooking.payment_status !==
                     "paid" && (
                     <div className="booking-payment-notice">
-                      <p>
-                        Payment is pending. Complete
-                        your payment to confirm this
-                        booking.
-                      </p>
 
-                      {isPlayer &&
-                        Number(
-                          selectedBooking.user_id
-                        ) === Number(userId) && (
+                      <div className="payment-notice-content">
+
+                        <div>
+                          <strong>
+                            Payment Required
+                          </strong>
+
+                          <p>
+                            Payment is pending for
+                            this booking.
+                          </p>
+
+                          <div className="payment-amount">
+                            {formatAmount(
+                              selectedBooking.amount
+                            )}
+                          </div>
+                        </div>
+
+                        {/* PLAYER PAY */}
+
+                        {isPlayer &&
+                          Number(
+                            selectedBooking.user_id
+                          ) === Number(userId) && (
+                            <button
+                              type="button"
+                              className="pay-now-btn"
+                              onClick={() =>
+                                handlePayNow(
+                                  selectedBooking
+                                )
+                              }
+                              disabled={
+                                updatingStatus ===
+                                selectedBooking.id
+                              }
+                            >
+                              {updatingStatus ===
+                              selectedBooking.id
+                                ? "Processing..."
+                                : `Pay Now ${formatAmount(
+                                    selectedBooking.amount
+                                  )}`}
+                            </button>
+                          )}
+
+                        {/* ADMIN / STAFF COLLECT */}
+
+                        {canManageBooking && (
                           <button
                             type="button"
-                            className="pay-now-btn"
+                            className="admin-payment-btn"
                             onClick={() =>
-                              handlePayNow(
+                              handleAdminPayment(
                                 selectedBooking
                               )
                             }
@@ -1653,63 +1792,83 @@ function Booking() {
                             {updatingStatus ===
                             selectedBooking.id
                               ? "Processing..."
-                              : `Pay Now ${formatAmount(
+                              : `Collect Payment ${formatAmount(
                                   selectedBooking.amount
                                 )}`}
                           </button>
                         )}
+
+                      </div>
                     </div>
                   )}
 
-                {/* PAYMENT SUCCESS */}
+                {/* =================================================
+                    PAYMENT SUCCESS
+                ================================================= */}
+
                 {selectedBooking.payment_status ===
-                  "paid" &&
-                  selectedBooking.status ===
-                    "confirmed" && (
-                    <div className="booking-payment-success">
-                      Payment completed. Your booking
-                      is confirmed.
+                  "paid" && (
+                  <div className="booking-payment-success">
+
+                    <div className="payment-success-icon">
+                      ✓
                     </div>
-                  )}
+
+                    <div>
+                      <strong>
+                        Payment Completed
+                      </strong>
+
+                      <p>
+                        {selectedBooking.status ===
+                        "confirmed"
+                          ? "Booking is confirmed and ready for the game session."
+                          : "Payment has been received successfully."}
+                      </p>
+                    </div>
+
+                  </div>
+                )}
+
               </div>
             )}
 
-            {/* MODAL FOOTER */}
+            {/* =====================================================
+                MODAL FOOTER
+            ===================================================== */}
+
             <div className="booking-modal-footer">
-              {/* ADMIN / STAFF PENDING ACTIONS */}
+
+              {/* ADMIN / STAFF - PENDING */}
+
               {!detailsLoading &&
                 canManageBooking &&
                 selectedBooking.status ===
                   "pending" && (
                   <>
-                    <button
-                      type="button"
-                      className="confirm-booking-btn"
-                      onClick={() =>
-                        handleConfirmBooking(
-                          selectedBooking
-                        )
-                      }
-                      disabled={
-                        updatingStatus ===
-                          selectedBooking.id ||
-                        selectedBooking.payment_status !==
-                          "paid"
-                      }
-                      title={
-                        selectedBooking.payment_status !==
-                        "paid"
-                          ? "Complete payment before confirming the booking"
-                          : "Confirm Booking"
-                      }
-                    >
-                      <Check size={14} />
-
-                      {updatingStatus ===
-                      selectedBooking.id
-                        ? "Updating..."
-                        : "Confirm Booking"}
-                    </button>
+                    {selectedBooking.payment_status !==
+                      "paid" && (
+                      <button
+                        type="button"
+                        className="admin-payment-btn"
+                        onClick={() =>
+                          handleAdminPayment(
+                            selectedBooking
+                          )
+                        }
+                        disabled={
+                          updatingStatus ===
+                          selectedBooking.id
+                        }
+                      >
+                        {updatingStatus ===
+                        selectedBooking.id
+                          ? "Processing..."
+                          : `💳 Collect Payment ${formatAmount(
+                              selectedBooking.amount
+                            )}`}
+                      </button>
+                    )}
 
                     <button
                       type="button"
@@ -1725,46 +1884,20 @@ function Booking() {
                       }
                     >
                       <X size={14} />
-
                       Cancel Booking
                     </button>
                   </>
                 )}
 
-              {/* PLAYER PENDING / CONFIRMED CANCEL */}
+              {/* PLAYER - PENDING */}
+
               {!detailsLoading &&
                 isPlayer &&
                 Number(
                   selectedBooking.user_id
                 ) === Number(userId) &&
-                selectedBooking.status !==
-                  "cancelled" &&
-                selectedBooking.status !==
-                  "completed" && (
-                  <button
-                    type="button"
-                    className="cancel-booking-btn"
-                    onClick={() =>
-                      handleCancelBooking(
-                        selectedBooking
-                      )
-                    }
-                    disabled={
-                      updatingStatus ===
-                      selectedBooking.id
-                    }
-                  >
-                    <X size={14} />
-
-                    Cancel Booking
-                  </button>
-                )}
-
-              {/* ADMIN / STAFF CONFIRMED CANCEL */}
-              {!detailsLoading &&
-                canManageBooking &&
                 selectedBooking.status ===
-                  "confirmed" && (
+                  "pending" && (
                   <button
                     type="button"
                     className="cancel-booking-btn"
@@ -1779,12 +1912,12 @@ function Booking() {
                     }
                   >
                     <X size={14} />
-
                     Cancel Booking
                   </button>
                 )}
 
               {/* CLOSE */}
+
               <button
                 type="button"
                 className="modal-close-button"
@@ -1794,6 +1927,7 @@ function Booking() {
               >
                 Close
               </button>
+
             </div>
           </div>
         </div>

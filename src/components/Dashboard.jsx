@@ -15,7 +15,7 @@ import "../styles/Dashboard.css";
 function Dashboard({ onLogout }) {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const role = user?.role_name;
-
+  const assignedGameId = user?.assigned_game_id || null;
   const [activePage, setActivePage] = useState("Dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -84,13 +84,16 @@ function Dashboard({ onLogout }) {
         return <DashboardHome user={user} setActivePage={handlePageChange} />;
 
       case "Games":
-        return <GamesPage setActivePage={handlePageChange} />;
+        return <GamesPage 
+        setActivePage={handlePageChange}
+        assignedGameId={assignedGameId}
+         />;
 
       case "Users":
         return <Users/>
         
       case "Gaming Station":
-        return <GamingStation />;
+        return <GamingStation assignedGameId={assignedGameId} />;
 
       case "Cameras":
         return <Camera />;
@@ -100,7 +103,10 @@ function Dashboard({ onLogout }) {
         return <Memberships />;
 
       case "Bookings":
-        return <Booking pageType="Bookings" setActivePage={handlePageChange} />;
+        return <Booking 
+        pageType="Bookings" 
+        setActivePage={handlePageChange}
+        assignedGameId={assignedGameId} />;
 
       case "My Bookings":
         return (
@@ -108,7 +114,8 @@ function Dashboard({ onLogout }) {
         );
       case "Game Session":
       case "My Game Sessions":
-        return <GameSession />;
+        return <GameSession 
+        assignedGameId={assignedGameId}/>;
 
       case "Payments":
       case "My Payments":

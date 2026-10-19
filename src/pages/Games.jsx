@@ -11,7 +11,7 @@ import {
 import api from "../api/axios";
 import "../styles/Games.css";
 
-function Games({ setActivePage }) {
+function Games({ setActivePage, assignedGameId }) {
   // --------------------------------------------------
   // USER / ROLE
   // --------------------------------------------------
@@ -157,6 +157,14 @@ function Games({ setActivePage }) {
   // --------------------------------------------------
 
   const filtered = games.filter((game) => {
+    // Staff can see only their assigned game
+    if (
+      role === "Staff" &&
+      Number(game.id) !== Number(assignedGameId)
+    ) {
+      return false;
+    }
+
     const searchText = filter.toLowerCase().trim();
 
     return (
@@ -261,7 +269,7 @@ function Games({ setActivePage }) {
       description: game.description || "",
       price:
         game.price !== undefined &&
-        game.price !== null
+          game.price !== null
           ? String(game.price)
           : "",
       status: game.status || "active",
@@ -409,7 +417,7 @@ function Games({ setActivePage }) {
 
       showMessage(
         error.response?.data?.message ||
-          "Failed to save game",
+        "Failed to save game",
         "error"
       );
     } finally {
@@ -443,7 +451,7 @@ function Games({ setActivePage }) {
 
       showMessage(
         error.response?.data?.message ||
-          "Failed to delete game",
+        "Failed to delete game",
         "error"
       );
     } finally {
@@ -476,7 +484,7 @@ function Games({ setActivePage }) {
           <h1>Games Library</h1>
 
           <p>
-            {games.length} games available
+            {filtered.length} games available
             {canManageGames
               ? " • Manage your catalog"
               : " • Browse available games"}

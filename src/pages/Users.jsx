@@ -22,15 +22,13 @@ function Users() {
         email: "",
         password: "",
         role_id: "3",
+        assigned_game_id: "",
     });
-
+    const [games, setGames] = useState([]);
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
 
-    // =====================================================
-    // LOAD PLAYERS
-    // =====================================================
-
+    //  LOAD PLAYERS
     const refreshUsers = async () => {
         try {
             const response = await api.get("/users");
@@ -49,9 +47,27 @@ function Users() {
         }
     };
 
+
+
     useEffect(() => {
         let cancelled = false;
-
+        //fetch games
+        const fetchGames = async () => {
+            try {
+                const response = await api.get("/games");
+                setGames(response.data.data || []);
+            }
+            catch (err) {
+                console.error(
+                    "Games API ERROR:",
+                    err.response?.data || err.message
+                );
+                setError(
+                    err.response?.data?.message ||
+                    "Failed to load games."
+                );
+            }
+        };
         const fetchUsers = async () => {
             try {
                 const response = await api.get("/users");
@@ -78,15 +94,13 @@ function Users() {
         };
 
         fetchUsers();
-
+        fetchGames();
         return () => {
             cancelled = true;
         };
     }, []);
-    // =====================================================
-    // FORM CHANGE
-    // =====================================================
 
+    // FORM CHANGE
     const handleChange = (e) => {
         const { name, value } = e.target;
 
@@ -108,12 +122,16 @@ function Users() {
 
         try {
             const response = await api.post("/users", {
-                full_name: formData.full_name,
-                mobile: formData.mobile,
-                email: formData.email,
-                password: formData.password,
-                role_id: Number(formData.role_id),
-            });
+    full_name: formData.full_name,
+    mobile: formData.mobile,
+    email: formData.email,
+    password: formData.password,
+    role_id: Number(formData.role_id),
+    assigned_game_id:
+        formData.role_id === "2"
+            ? Number(formData.assigned_game_id)
+            : null,
+});
 
             setMessage(
                 response.data.message ||
@@ -404,6 +422,35 @@ function Users() {
                                     </select>
 
                                 </div>
+                                {/* ASSIGNED GAME */}
+
+                                {formData.role_id === "2" && (
+                                    <div className="form-group">
+                                        <label>Assigned Game</label>
+
+                                        <select
+                                            name="assigned_game_id"
+                                            value={formData.assigned_game_id}
+                                            onChange={handleChange}
+                                            required
+                                        >
+                                            <option value="">
+                                                Select Game
+                                            </option>
+
+                                            {games.map((game) => (
+                                                <option
+                                                    key={game.id}
+                                                    value={game.id}
+                                                >
+                                                    {game.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+
+
 
                             </div>
 

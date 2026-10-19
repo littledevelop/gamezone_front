@@ -4,11 +4,16 @@ import { Search, Play, Square } from "lucide-react";
 import api from "../api/axios";
 import "../styles/GameSession.css";
 import { isAdminOrStaff } from "../utils/auth";
+import GameSessionStartModal from "../components/game-session/GameSessionStartModal";
+import GameSessionDetailModal from "../components/game-session/GameSessionDetailModal";
+
+
+const CAMERA_SERVICE_URL = "http://localhost:6100";
 
 function GameSession() {
-    // ==================================================
+    // =========================================================
     // USER / ROLE
-    // ==================================================
+    // =========================================================
 
     const canManage = isAdminOrStaff();
 
@@ -19,47 +24,64 @@ function GameSession() {
     const role = user?.role_name || "Player";
     const isPlayer = role === "Player";
 
-    // ==================================================
-    // STATE
-    // ==================================================
+    // =========================================================
+    // SESSIONS
+    // =========================================================
 
-    // Sessions
     const [sessions, setSessions] = useState([]);
     const [filter, setFilter] = useState("");
     const [loading, setLoading] = useState(true);
+    const manualEndingSessionsRef = useRef(new Set());
+    // =========================================================
+    // MESSAGES
+    // =========================================================
 
-    // Messages
     const [message, setMessage] = useState("");
     const [startError, setStartError] = useState("");
 
-    // Start Session
+    // =========================================================
+    // START SESSION
+    // =========================================================
+
     const [showStart, setShowStart] = useState(false);
     const [selectedBookingId, setSelectedBookingId] = useState("");
     const [bookings, setBookings] = useState([]);
     const [bookingsLoading, setBookingsLoading] = useState(false);
     const [starting, setStarting] = useState(false);
 
-    // Timer
+    // =========================================================
+    // TIMER
+    // =========================================================
+
     const [currentTime, setCurrentTime] = useState(null);
 
-    // Session Details
+    // =========================================================
+    // SESSION DETAILS
+    // =========================================================
+
     const [selected, setSelected] = useState(null);
     const [showDetail, setShowDetail] = useState(false);
     const [detailsLoading, setDetailsLoading] = useState(false);
 
-    // Recording
+    // =========================================================
+    // RECORDING
+    // =========================================================
+
     const [cameras, setCameras] = useState([]);
     const [selectedCameraId, setSelectedCameraId] = useState("");
     const [selectedVideo, setSelectedVideo] = useState(null);
     const [uploadingVideo, setUploadingVideo] = useState(false);
     const [recording, setRecording] = useState(null);
 
-    // Prevent duplicate automatic end requests
+    // =========================================================
+    // PREVENT DUPLICATE AUTO END REQUESTS
+    // =========================================================
+
     const endingSessionsRef = useRef(new Set());
 
-    // ==================================================
+    // =========================================================
     // FETCH SESSIONS
-    // ==================================================
+    // =========================================================
 
     const fetchSessions = useCallback(async () => {
         try {
@@ -78,7 +100,6 @@ function GameSession() {
                 allSessions = res.data;
             }
 
-            // Player can see only their own sessions
             const visibleSessions = isPlayer
                 ? allSessions.filter(
                     (session) =>
@@ -89,7 +110,10 @@ function GameSession() {
 
             setSessions(visibleSessions);
         } catch (err) {
-            console.error("Fetch Sessions Error:", err);
+            console.error(
+                "Fetch Sessions Error:",
+                err
+            );
 
             setMessage(
                 err.response?.data?.message ||
@@ -98,9 +122,9 @@ function GameSession() {
         }
     }, [isPlayer, user?.id]);
 
-    // ==================================================
+    // =========================================================
     // FETCH CONFIRMED BOOKINGS
-    // ==================================================
+    // =========================================================
 
     const fetchBookings = useCallback(async () => {
         try {
@@ -124,7 +148,6 @@ function GameSession() {
                     []
                     : [];
 
-            // Get booking IDs which already have active sessions
             const activeBookingIds = new Set(
                 allSessions
                     .filter(
@@ -142,7 +165,8 @@ function GameSession() {
                         bookingRes.data.bookings || []
                     ).filter(
                         (booking) =>
-                            booking.status === "confirmed" &&
+                            booking.status ===
+                            "confirmed" &&
                             !activeBookingIds.has(
                                 String(booking.id)
                             )
@@ -162,9 +186,9 @@ function GameSession() {
         }
     }, []);
 
-    // ==================================================
+    // =========================================================
     // FETCH CAMERAS
-    // ==================================================
+    // =========================================================
 
     const fetchCameras = useCallback(async () => {
         try {
@@ -187,9 +211,9 @@ function GameSession() {
         }
     }, []);
 
-    // ==================================================
+    // =========================================================
     // GET SESSION DETAILS
-    // ==================================================
+    // =========================================================
 
     const getById = useCallback(
         async (id) => {
@@ -200,7 +224,9 @@ function GameSession() {
                 const res = await api
                     .get(`/game-session/${id}`)
                     .catch(() =>
-                        api.get(`/game-sessions/${id}`)
+                        api.get(
+                            `/game-sessions/${id}`
+                        )
                     );
 
                 if (res.data.success) {
@@ -210,16 +236,14 @@ function GameSession() {
 
                     setSelected(sessionData);
 
-                    // Load existing gameplay recording
                     setRecording(
-                        sessionData?.recording || null
+                        sessionData?.recording ||
+                        null
                     );
 
-                    // Reset upload controls
                     setSelectedCameraId("");
                     setSelectedVideo(null);
 
-                    // Cameras are only needed for Admin / Staff
                     if (canManage) {
                         await fetchCameras();
                     }
@@ -240,349 +264,841 @@ function GameSession() {
         [canManage, fetchCameras]
     );
 
-    // ==================================================
+    // =========================================================
     // UPLOAD GAMEPLAY RECORDING
-    // ==================================================
+    // =========================================================
 
     const handleUploadRecording = async () => {
-    if (!selected?.id) {
-        setMessage("Session not selected");
-        return;
-    }
-
-    if (!selectedCameraId) {
-        setMessage("Please select a camera");
-        return;
-    }
-
-    if (!selectedVideo) {
-        setMessage("Please select a video file");
-        return;
-    }
-
-    try {
-        setUploadingVideo(true);
-        setMessage("Uploading video...");
-
-        const formData = new FormData();
-
-        formData.append("video", selectedVideo);
-        formData.append("session_id", selected.id);
-        formData.append("camera_id", selectedCameraId);
-
-        console.log("1. Starting video upload...");
-
-        const res = await api.post(
-            "/video-recordings/upload",
-            formData,
-            {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                },
-            }
-        );
-
-        console.log("2. Upload API response:", res.data);
-
-        if (res.data.success) {
-            setMessage("Recording uploaded successfully");
-
-            setRecording(res.data.data);
-
-            setSelectedVideo(null);
-            setSelectedCameraId("");
-
-            console.log("3. Upload successful");
-
-            await fetchSessions();
-
-            console.log("4. Sessions refreshed");
-
-            await getById(selected.id);
-
-            console.log("5. Session details refreshed");
-        } else {
-            setMessage(
-                res.data.message ||
-                "Failed to upload recording"
-            );
-        }
-
-    } catch (err) {
-        console.error(
-            "Upload Recording Error:",
-            err
-        );
-
-        setMessage(
-            err.response?.data?.message ||
-            "Failed to upload recording"
-        );
-    } finally {
-        console.log("6. Upload process finished");
-        setUploadingVideo(false);
-    }
-};
-
-    //handle generate QR CODE
-    // ==================================================
-// GENERATE QR CODE
-// ==================================================
-
-const handleGenerateQRCode = async () => {
-    try {
         if (!selected?.id) {
-            alert("Session ID not found");
+            setMessage("Session not selected");
             return;
         }
 
-        if (!recording?.id) {
-            alert("Video recording not found");
+        if (!selectedCameraId) {
+            setMessage("Please select a camera");
             return;
         }
 
-        const response = await api.post(
-            "/qr-codes/video",
-            {
-                session_id: selected.id,
-                video_recording_id: recording.id,
-            }
-        );
-
-        if (response.data.success) {
-            // const qrCode =
-                response.data.data.qr_code;
-
-            // window.open(
-            //     `/qr/${qrCode}`,
-            //     "_blank"
-            // );
-
-            alert("QR code generated successfully. QR Display will update automatically.");
-        } else {
-            alert(
-                response.data.message ||
-                "Failed to generate QR code"
-            );
-        }
-
-    } catch (error) {
-        console.error(
-            "Generate QR error:",
-            error
-        );
-
-        alert(
-            error.response?.data?.message ||
-            "Failed to generate QR code"
-        );
-    }
-};
-
-    // ==================================================
-    // START SESSION
-    // ==================================================
-
-    const handleStart = async (e) => {
-        e.preventDefault();
-
-        if (!selectedBookingId) {
-            setStartError(
-                "Please select a booking."
-            );
-            return;
-        }
-
-        const booking = bookings.find(
-            (item) =>
-                String(item.id) ===
-                String(selectedBookingId)
-        );
-
-        if (!booking) {
-            setStartError(
-                "Selected booking not found"
-            );
+        if (!selectedVideo) {
+            setMessage("Please select a video file");
             return;
         }
 
         try {
-            setStarting(true);
-            setStartError("");
-            setMessage("");
+            setUploadingVideo(true);
+            setMessage("Uploading video...");
 
-            // Current date/time
-            const now = new Date();
+            const formData = new FormData();
 
-            const pad = (value) =>
-                String(value).padStart(2, "0");
+            formData.append(
+                "video",
+                selectedVideo
+            );
 
-            const startTime =
-                `${now.getFullYear()}-${pad(
-                    now.getMonth() + 1
-                )}-${pad(now.getDate())} ` +
-                `${pad(now.getHours())}:${pad(
-                    now.getMinutes()
-                )}:${pad(now.getSeconds())}`;
+            formData.append(
+                "session_id",
+                selected.id
+            );
 
-            // Booking start time
-            const startParts =
-                String(
-                    booking.start_time
-                )
-                    .substring(0, 8)
-                    .split(":")
-                    .map(Number);
-
-            // Booking end time
-            const endParts =
-                String(
-                    booking.end_time
-                )
-                    .substring(0, 8)
-                    .split(":")
-                    .map(Number);
-
-            const startMinutes =
-                startParts[0] * 60 +
-                startParts[1];
-
-            const endMinutes =
-                endParts[0] * 60 +
-                endParts[1];
-
-            let durationMinutes =
-                endMinutes -
-                startMinutes;
-
-            // Handle overnight booking
-            if (durationMinutes < 0) {
-                durationMinutes += 24 * 60;
-            }
+            formData.append(
+                "camera_id",
+                selectedCameraId
+            );
 
             const res = await api.post(
-                "/game-session",
+                "/video-recordings/upload",
+                formData,
                 {
-                    user_id: booking.user_id,
-                    game_id: booking.game_id,
-                    station_id: booking.station_id,
-                    booking_id: booking.id,
-
-                    start_time: startTime,
-
-                    duration_minutes:
-                        durationMinutes,
-
-                    amount:
-                        booking.amount || 0,
-
-                    status: "active",
-
-                    recording_status:
-                        "not_recorded",
+                    headers: {
+                        "Content-Type":
+                            "multipart/form-data",
+                    },
                 }
             );
 
             if (res.data.success) {
                 setMessage(
-                    "Game session started successfully"
+                    "Recording uploaded successfully"
                 );
 
-                setShowStart(false);
-                setSelectedBookingId("");
-                setStartError("");
+                setRecording(res.data.data);
 
-                await Promise.all([
-                    fetchSessions(),
-                    fetchBookings(),
-                ]);
+                setSelectedVideo(null);
+                setSelectedCameraId("");
+
+                await fetchSessions();
+
+                await getById(selected.id);
             } else {
-                setStartError(
+                setMessage(
                     res.data.message ||
-                    "Failed to start session"
+                    "Failed to upload recording"
                 );
             }
         } catch (err) {
             console.error(
-                "Start Session Error:",
+                "Upload Recording Error:",
                 err
             );
 
-            setStartError(
+            setMessage(
                 err.response?.data?.message ||
-                "Failed to start game session"
+                "Failed to upload recording"
             );
+        } finally {
+            setUploadingVideo(false);
+        }
+    };
+
+    // =========================================================
+    // GENERATE QR CODE
+    // =========================================================
+
+    const handleGenerateQRCode = async () => {
+        try {
+            if (!selected?.id) {
+                alert("Session ID not found");
+                return;
+            }
+
+            if (!recording?.id) {
+                alert("Video recording not found");
+                return;
+            }
+
+            const response = await api.post(
+                "/qr-codes/video",
+                {
+                    session_id: selected.id,
+                    video_recording_id:
+                        recording.id,
+                }
+            );
+
+            if (response.data.success) {
+                alert(
+                    "QR code generated successfully. QR Display will update automatically."
+                );
+            } else {
+                alert(
+                    response.data.message ||
+                    "Failed to generate QR code"
+                );
+            }
+        } catch (error) {
+            console.error(
+                "Generate QR error:",
+                error
+            );
+
+            alert(
+                error.response?.data?.message ||
+                "Failed to generate QR code"
+            );
+        }
+    };
+
+    // =========================================================
+    // START SESSION
+    // =========================================================
+
+    const handleStart = async () => {
+        if (!selectedBookingId) {
+            setStartError("Please select a booking.");
+            return;
+        }
+
+        setStarting(true);
+        setStartError("");
+        setMessage("");
+
+        let sessionId = null;
+
+        try {
+            // -------------------------------------------------
+            // FIND SELECTED BOOKING
+            // -------------------------------------------------
+
+            const selectedBooking = bookings.find(
+                (booking) =>
+                    Number(booking.id) ===
+                    Number(selectedBookingId)
+            );
+
+            if (!selectedBooking) {
+                throw new Error("Selected booking not found.");
+            }
+
+            // -------------------------------------------------
+            // START TIME
+            // -------------------------------------------------
+
+            const startTime = new Date();
+
+            // Convert to MySQL DATETIME
+            const mysqlStartTime =
+                `${startTime.getFullYear()}-` +
+                `${String(startTime.getMonth() + 1).padStart(2, "0")}-` +
+                `${String(startTime.getDate()).padStart(2, "0")} ` +
+                `${String(startTime.getHours()).padStart(2, "0")}:` +
+                `${String(startTime.getMinutes()).padStart(2, "0")}:` +
+                `${String(startTime.getSeconds()).padStart(2, "0")}`;
+
+            // -------------------------------------------------
+            // CREATE GAME SESSION
+            // -------------------------------------------------
+
+            const res = await api.post(
+                "/game-session",
+                {
+                    user_id: selectedBooking.user_id,
+                    game_id: selectedBooking.game_id,
+                    station_id: selectedBooking.station_id,
+                    booking_id: selectedBooking.id,
+                    start_time: mysqlStartTime,
+                    duration_minutes:
+                        selectedBooking.duration_minutes ??
+                        selectedBooking.duration ??
+                        0,
+                    amount: selectedBooking.amount ?? 0,
+                    status: "active",
+                    recording_status: "not_recorded"
+                }
+            );
+
+            if (!res.data?.success) {
+                throw new Error(
+                    res.data?.message ||
+                    "Game session could not be created."
+                );
+            }
+
+            sessionId = res.data.gameSession_id;
+
+            if (!sessionId) {
+                throw new Error(
+                    "Game session ID was not returned by the server."
+                );
+            }
+
+            console.log(
+                "GAME SESSION CREATED:",
+                sessionId
+            );
+
+            // -------------------------------------------------
+            // START CAMERA RECORDING
+            // -------------------------------------------------
+
+            try {
+                await startCameraRecording({
+                    sessionId,
+                    gameId: selectedBooking.game_id,
+                    playerName:
+                        selectedBooking.user_name ||
+                        selectedBooking.player_name ||
+                        selectedBooking.full_name ||
+                        "Player",
+                    gameName:
+                        selectedBooking.game_name ||
+                        "Game"
+                });
+
+                // -------------------------------------------------
+                // CAMERA STARTED SUCCESSFULLY
+                // -------------------------------------------------
+
+                setMessage(
+                    "Game session and camera recording started successfully"
+                );
+
+                setShowStart(false);
+                setSelectedBookingId("");
+
+                await fetchSessions();
+                await fetchBookings();
+
+            } catch (cameraError) {
+
+                console.error(
+                    "CAMERA START ERROR:",
+                    cameraError
+                );
+
+                // -------------------------------------------------
+                // STOP ANY CAMERA RECORDING THAT MAY HAVE STARTED
+                // -------------------------------------------------
+
+                try {
+                    await stopCameraRecording(sessionId);
+                } catch (stopError) {
+                    console.error(
+                        "CAMERA CLEANUP ERROR:",
+                        stopError
+                    );
+                }
+
+                // -------------------------------------------------
+                // CANCEL GAME SESSION
+                // -------------------------------------------------
+
+                try {
+                    const cancelRes = await api.put(
+                        `/game-session/${sessionId}`,
+                        {
+                            status: "cancelled",
+                            end_time: mysqlStartTime,
+                            recording_status: "not_recorded"
+                        }
+                    );
+
+
+
+                    if (
+                        !cancelRes.data ||
+                        cancelRes.data.success !== true
+                    ) {
+                        console.error(
+                            "Backend could not cancel the game session:",
+                            cancelRes.data
+                        );
+
+                        setStartError(
+                            cancelRes.data &&
+                                cancelRes.data.message
+                                ? cancelRes.data.message
+                                : "Backend could not cancel the game session."
+                        );
+
+                        await fetchSessions();
+                        return;
+                    }
+
+
+
+
+
+                    console.log(
+                        "SESSION CANCELLED:",
+                        sessionId
+                    );
+
+
+
+
+                } catch (cancelError) {
+                    console.error(
+                        "SESSION CANCELLATION FAILED - FULL ERROR:",
+                        cancelError
+                    );
+
+                    console.error(
+                        "HTTP STATUS:",
+                        cancelError.response
+                            ? cancelError.response.status
+                            : "No HTTP response"
+                    );
+
+                    console.error(
+                        "BACKEND RESPONSE:",
+                        cancelError.response
+                            ? cancelError.response.data
+                            : "No backend response"
+                    );
+
+                    console.error(
+                        "ERROR MESSAGE:",
+                        cancelError.message
+                    );
+
+
+
+
+                    setStartError(
+                        "Camera recording failed, and the session could not be cancelled. Please refresh and check the session status."
+                    );
+
+                    await fetchSessions();
+                    return;
+                }
+
+                // -------------------------------------------------
+                // CAMERA FAILED BUT SESSION CANCELLED
+                // -------------------------------------------------
+
+                setStartError(
+                    cameraError.message ||
+                    "Camera recording could not start. Game session was cancelled."
+                );
+
+                await fetchSessions();
+                await fetchBookings();
+
+                return;
+            }
+
+        } catch (error) {
+
+            console.error(
+                "START GAME SESSION ERROR:",
+                error.response?.data ||
+                error.message
+            );
+
+            setStartError(
+                error.response?.data?.message ||
+                error.message ||
+                "Unable to start game session."
+            );
+
+            // -------------------------------------------------
+            // IF SESSION WAS CREATED BUT SOMETHING FAILED
+            // -------------------------------------------------
+
+            if (sessionId) {
+                try {
+                    await api.put(
+                        `/game-session/${sessionId}`,
+                        {
+                            status: "cancelled",
+                            recording_status: "not_recorded"
+                        }
+                    );
+
+                    console.log(
+                        "FAILED START SESSION CANCELLED:",
+                        sessionId
+                    );
+
+                } catch (cancelError) {
+                    console.error(
+                        "FAILED START SESSION CANCELLATION ERROR:",
+                        cancelError.response?.data ||
+                        cancelError.message
+                    );
+                }
+            }
+
+            await fetchSessions();
+            await fetchBookings();
+
         } finally {
             setStarting(false);
         }
     };
 
-    // ==================================================
-    // END SESSION
-    // ==================================================
 
-    const handleEnd = async (session) => {
-        const confirmEnd =
-            window.confirm(
-                `End Session #${session.id} for ${session.user_name}?`
-            );
+    // =========================================================
+    // START CAMERA RECORDING
+    // =========================================================
 
-        if (!confirmEnd) {
-            return;
-        }
-
+    const startCameraRecording = async ({
+        sessionId,
+        playerName,
+        gameName,
+        gameId,
+    }) => {
         try {
-            setMessage("");
-
-            const now = new Date();
-
-            const pad = (value) =>
-                String(value).padStart(2, "0");
-
-            const endTime =
-                `${now.getFullYear()}-${pad(
-                    now.getMonth() + 1
-                )}-${pad(now.getDate())} ` +
-                `${pad(now.getHours())}:${pad(
-                    now.getMinutes()
-                )}:${pad(now.getSeconds())}`;
-
-            const res = await api.put(
-                `/game-session/${session.id}`,
+            console.log(
+                "START CAMERA DATA:",
                 {
-                    end_time: endTime,
-                    status: "completed",
+                    sessionId,
+                    playerName,
+                    gameName,
+                    gameId,
                 }
             );
 
-            if (res.data.success) {
-                setMessage(
-                    "Game session ended successfully"
-                );
+            // =================================================
+            // VALIDATE GAME ID
+            // =================================================
 
-                await fetchSessions();
-            } else {
-                setMessage(
-                    res.data.message ||
-                    "Failed to end game session"
+            if (!gameId) {
+                throw new Error(
+                    "Game ID is missing."
                 );
             }
-        } catch (err) {
-            console.error(
-                "End Session Error:",
-                err
+
+            // =================================================
+            // GET CAMERAS ASSIGNED TO GAME
+            // =================================================
+
+            const cameraResponse =
+                await api.get(
+                    `/game-cameras/game/${gameId}`
+                );
+
+            console.log(
+                "GAME CAMERA API RESPONSE:",
+                cameraResponse.data
             );
+
+            if (
+                !cameraResponse.data.success ||
+                !Array.isArray(
+                    cameraResponse.data.data
+                )
+            ) {
+                throw new Error(
+                    "Failed to get cameras assigned to the game."
+                );
+            }
+
+            const assignedCameras =
+                cameraResponse.data.data;
+
+            // =================================================
+            // CAMERA IS COMPULSORY
+            // =================================================
+
+            if (
+                assignedCameras.length === 0
+            ) {
+                throw new Error(
+                    `No active cameras are assigned to game ${gameId}.`
+                );
+            }
+
+            console.log(
+                "Assigned Cameras:",
+                assignedCameras
+            );
+
+            const startedCameras = [];
+
+            // =================================================
+            // START EVERY ASSIGNED CAMERA
+            // =================================================
+
+            for (
+                let index = 0;
+                index <
+                assignedCameras.length;
+                index++
+            ) {
+                const camera =
+                    assignedCameras[index];
+
+                /*
+                 * TEMPORARY CAMERA SERVICE ID
+                 *
+                 * This will be replaced with the
+                 * actual physical camera mapping
+                 * in the next step.
+                 */
+                const cameraId = `camera_${index + 1}`;
+
+                const databaseCameraId = Number(
+                    camera.camera_id ?? camera.id
+                );
+
+                if (!Number.isInteger(databaseCameraId) ||
+                    databaseCameraId <= 0) {
+                    throw new Error(
+                        `Invalid database camera ID for ${camera.camera_name}.`
+                    );
+                }
+                console.log(
+                    `Starting ${camera.camera_name} as ${cameraId}`
+                );
+
+                let response;
+
+                try {
+                    console.log("camera network error");
+                    response =
+                        await fetch(
+                            `${CAMERA_SERVICE_URL}/camera/start`,
+                            {
+                                method:
+                                    "POST",
+
+                                headers: {
+                                    "Content-Type":
+                                        "application/json",
+                                },
+
+                                body:
+                                    JSON.stringify(
+                                        {
+                                            sessionId,
+
+                                            playerName,
+
+                                            gameName,
+
+                                            cameraId,
+                                            databaseCameraId,
+                                        }
+                                    ),
+                            }
+                        );
+                } catch (networkError) {
+                    console.error(
+                        "Camera Service Network Error:",
+                        networkError
+                    );
+
+                    throw new Error(
+                        `Camera service is not running. Please start the camera service on port 6100.`,
+                        {
+                            cause: networkError,
+                        }
+                    );
+                }
+
+                // =================================================
+                // HANDLE NON-JSON / EMPTY RESPONSE
+                // =================================================
+
+                let data;
+
+                try {
+                    data =
+                        await response.json();
+                } catch (
+                jsonError
+                ) {
+                    console.error(
+                        "Invalid camera service response:",
+                        jsonError
+                    );
+
+                    throw new Error(
+                        "Camera service returned an invalid response.",
+                        {
+                            cause: jsonError,
+                        }
+                    );
+                }
+
+                console.log(
+                    `Camera Service Response (${cameraId}):`,
+                    data
+                );
+
+                // =================================================
+                // CAMERA START FAILED
+                // =================================================
+
+                if (
+                    !response.ok ||
+                    !data.success
+                ) {
+                    throw new Error(
+                        data.message ||
+                        `Failed to start camera recording for ${camera.camera_name}.`
+                    );
+                }
+
+                // =================================================
+                // CAMERA START SUCCESS
+                // =================================================
+                startedCameras.push({
+                    databaseCameraId,
+                    cameraId,
+                    cameraName: camera.camera_name,
+                });
+                console.log(
+                    `Camera started successfully: ${camera.camera_name} → ${cameraId}`
+                );
+            }
+
+            // =================================================
+            // VERIFY ALL CAMERAS STARTED
+            // =================================================
+
+            if (
+                startedCameras.length !==
+                assignedCameras.length
+            ) {
+                throw new Error(
+                    "Not all assigned cameras were started."
+                );
+            }
+
+            console.log(
+                "ALL ASSIGNED CAMERAS STARTED:",
+                startedCameras
+            );
+
+            return {
+                success: true,
+                cameras: startedCameras,
+            };
+        } catch (error) {
+            console.error(
+                "Camera Start Error:",
+                error || "Failed to start the camera"
+            );
+
+            // IMPORTANT:
+            // Re-throw the error so handleStart()
+            // can cancel the game session.
+
+            throw error;
+        }
+    };
+
+    // =========================================================
+    // STOP CAMERA RECORDING
+    // =========================================================
+
+    const stopCameraRecording = async (sessionId) => {
+        try {
+            console.log(
+                "STOP CAMERA REQUEST FOR SESSION:",
+                sessionId
+            );
+
+            const response = await fetch(
+                `${CAMERA_SERVICE_URL}/camera/stop-session`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+
+                    body: JSON.stringify({
+                        sessionId,
+                    }),
+                }
+            );
+
+            let data;
+
+            try {
+                data = await response.json();
+            } catch (jsonError) {
+                console.error(
+                    "Camera stop invalid response:",
+                    jsonError
+                );
+
+                const error = new Error(
+                    "Camera service returned an invalid response."
+                );
+
+                error.cause = jsonError;
+                throw error;
+            }
+
+            console.log(
+                "STOP CAMERA RESPONSE:",
+                data
+            );
+
+            if (!response.ok || !data.success) {
+                throw new Error(
+                    data.message ||
+                    "Camera recording could not be stopped."
+                );
+            }
+
+            return {
+                success: true,
+                stopped:
+                    data.stoppedCameras || [],
+            };
+
+        } catch (error) {
+            console.error(
+                "Camera Stop Error:",
+                error
+            );
+
+            return {
+                success: false,
+                stopped: [],
+                message:
+                    error.message ||
+                    "Camera recording could not be stopped."
+            };
+        }
+    };
+
+    // =========================================================
+    // END SESSION
+    // =========================================================
+
+
+    const handleEnd = async (session) => {
+        // Prevent duplicate clicks for the same session
+        if (manualEndingSessionsRef.current.has(session.id)) {
+            console.log("End Session already in progress:", session.id);
+            return;
+        }
+
+        manualEndingSessionsRef.current.add(session.id);
+
+        try {
+            const confirmEnd = window.confirm(
+                `End Session #${session.id} for ${session.user_name}?`
+            );
+
+            if (!confirmEnd) {
+                return;
+            }
+
+            setMessage("");
+
+            const now = new Date();
+            const pad = (value) => String(value).padStart(2, "0");
+
+            const endTime =
+                `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ` +
+                `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+            const res = await api.put(`/game-session/${session.id}`, {
+                end_time: endTime,
+                status: "completed",
+            });
+
+            if (!res.data.success) {
+                setMessage(res.data.message || "Failed to end game session");
+                return;
+            }
+
+            // Stop the camera once and report its result separately
+            try {
+                const cameraResult = await stopCameraRecording(session.id);
+
+                if (cameraResult.success) {
+                    setMessage(
+                        "Game session and camera recording ended successfully"
+                    );
+                } else {
+                    setMessage(
+                        "Game session ended, but camera recording could not be stopped"
+                    );
+                }
+            } catch (cameraError) {
+                console.error("Camera Stop Error:", cameraError);
+
+                setMessage(
+                    "Game session ended, but camera recording could not be stopped"
+                );
+            }
+
+            await fetchSessions();
+        } catch (err) {
+            console.error("End Session Error:", err);
 
             setMessage(
                 err.response?.data?.message ||
                 "Failed to end game session"
             );
+        } finally {
+            // Allow another attempt after this operation finishes
+            manualEndingSessionsRef.current.delete(session.id);
         }
     };
 
-    // ==================================================
+
+    // =========================================================
     // GET REMAINING TIME
-    // ==================================================
+    // =========================================================
 
     const getRemainingTime = useCallback(
         (session) => {
@@ -629,9 +1145,9 @@ const handleGenerateQRCode = async () => {
         [currentTime]
     );
 
-    // ==================================================
+    // =========================================================
     // FORMAT TIMER
-    // ==================================================
+    // =========================================================
 
     const formatTimer = (seconds) => {
         if (
@@ -661,9 +1177,9 @@ const handleGenerateQRCode = async () => {
         );
     };
 
-    // ==================================================
+    // =========================================================
     // AUTOMATICALLY END EXPIRED SESSION
-    // ==================================================
+    // =========================================================
 
     const handleAutoEnd = useCallback(
         async (session) => {
@@ -683,7 +1199,10 @@ const handleGenerateQRCode = async () => {
                 const now = new Date();
 
                 const pad = (value) =>
-                    String(value).padStart(2, "0");
+                    String(value).padStart(
+                        2,
+                        "0"
+                    );
 
                 const endTime =
                     `${now.getFullYear()}-${pad(
@@ -702,12 +1221,19 @@ const handleGenerateQRCode = async () => {
                 const res = await api.put(
                     `/game-session/${session.id}`,
                     {
-                        end_time: endTime,
-                        status: "completed",
+                        end_time:
+                            endTime,
+
+                        status:
+                            "completed",
                     }
                 );
 
                 if (res.data.success) {
+                    await stopCameraRecording(
+                        session.id
+                    );
+
                     setMessage(
                         `Session #${session.id} ended automatically — time expired`
                     );
@@ -728,23 +1254,26 @@ const handleGenerateQRCode = async () => {
         [fetchSessions]
     );
 
-    // ==================================================
+    // =========================================================
     // TIMER - UPDATE EVERY SECOND
-    // ==================================================
+    // =========================================================
 
     useEffect(() => {
-        const timer = setInterval(() => {
-            setCurrentTime(Date.now());
-        }, 1000);
+        const timer =
+            setInterval(() => {
+                setCurrentTime(
+                    Date.now()
+                );
+            }, 1000);
 
         return () => {
             clearInterval(timer);
         };
     }, []);
 
-    // ==================================================
+    // =========================================================
     // AUTOMATIC SESSION EXPIRY CHECK
-    // ==================================================
+    // =========================================================
 
     useEffect(() => {
         if (currentTime === null) {
@@ -752,12 +1281,17 @@ const handleGenerateQRCode = async () => {
         }
 
         sessions.forEach((session) => {
-            if (session.status !== "active") {
+            if (
+                session.status !==
+                "active"
+            ) {
                 return;
             }
 
             const remaining =
-                getRemainingTime(session);
+                getRemainingTime(
+                    session
+                );
 
             if (remaining === 0) {
                 handleAutoEnd(session);
@@ -770,9 +1304,9 @@ const handleGenerateQRCode = async () => {
         handleAutoEnd,
     ]);
 
-    // ==================================================
+    // =========================================================
     // INITIAL LOAD
-    // ==================================================
+    // =========================================================
 
     useEffect(() => {
         const load = async () => {
@@ -786,9 +1320,9 @@ const handleGenerateQRCode = async () => {
         load();
     }, [fetchSessions]);
 
-    // ==================================================
+    // =========================================================
     // FILTERED SESSIONS
-    // ==================================================
+    // =========================================================
 
     const filtered = sessions.filter(
         (session) =>
@@ -804,18 +1338,18 @@ const handleGenerateQRCode = async () => {
                 )
     );
 
-    // ==================================================
+    // =========================================================
     // ACTIVE SESSION COUNT
-    // ==================================================
+    // =========================================================
 
     const active = sessions.filter(
         (session) =>
             session.status === "active"
     ).length;
 
-    // ==================================================
+    // =========================================================
     // CLOSE DETAILS MODAL
-    // ==================================================
+    // =========================================================
 
     const closeDetails = () => {
         setShowDetail(false);
@@ -825,19 +1359,23 @@ const handleGenerateQRCode = async () => {
         setSelectedVideo(null);
     };
 
-    // ==================================================
+    // =========================================================
     // CLOSE START MODAL
-    // ==================================================
+    // =========================================================
 
     const closeStartModal = () => {
+        if (starting) {
+            return;
+        }
+
         setShowStart(false);
         setSelectedBookingId("");
         setStartError("");
     };
 
-    // ==================================================
+    // =========================================================
     // LOADING SCREEN
-    // ==================================================
+    // =========================================================
 
     if (loading) {
         return (
@@ -853,16 +1391,14 @@ const handleGenerateQRCode = async () => {
         );
     }
 
-    // ==================================================
+    // =========================================================
     // MAIN UI
-    // ==================================================
+    // =========================================================
 
     return (
         <div className="game-session-page">
 
-            {/* ==================================================
-                HEADER
-            ================================================== */}
+            {/* HEADER */}
 
             <div className="game-session-header">
 
@@ -885,6 +1421,7 @@ const handleGenerateQRCode = async () => {
                 {canManage && (
                     <button
                         className="start-session-btn"
+                        disabled={starting}
                         onClick={async () => {
                             setShowStart(true);
                             setStartError("");
@@ -900,9 +1437,7 @@ const handleGenerateQRCode = async () => {
                 )}
             </div>
 
-            {/* ==================================================
-                SEARCH
-            ================================================== */}
+            {/* SEARCH */}
 
             <div className="game-session-search-row">
 
@@ -936,30 +1471,29 @@ const handleGenerateQRCode = async () => {
                 </span>
             </div>
 
-            {/* ==================================================
-                MESSAGE
-            ================================================== */}
+            {/* MESSAGE */}
 
             {message && (
                 <div
-                    className={`game-session-message ${
+                    className={`game-session-message ${message
+                        .toLowerCase()
+                        .includes(
+                            "successfully"
+                        ) ||
                         message
                             .toLowerCase()
-                            .includes("successfully") ||
-                        message
-                            .toLowerCase()
-                            .includes("automatically")
-                            ? "success"
-                            : ""
-                    }`}
+                            .includes(
+                                "automatically"
+                            )
+                        ? "success"
+                        : ""
+                        }`}
                 >
                     {message}
                 </div>
             )}
 
-            {/* ==================================================
-                SESSION LIST
-            ================================================== */}
+            {/* SESSION LIST */}
 
             <div className="game-session-list-section">
 
@@ -977,8 +1511,6 @@ const handleGenerateQRCode = async () => {
                 </div>
 
                 {filtered.length === 0 ? (
-
-                    /* EMPTY STATE */
 
                     <div className="empty-game-sessions">
 
@@ -1001,8 +1533,6 @@ const handleGenerateQRCode = async () => {
 
                 ) : (
 
-                    /* SESSION CARDS */
-
                     <div className="game-session-grid">
 
                         {filtered.map(
@@ -1021,10 +1551,9 @@ const handleGenerateQRCode = async () => {
                                         </span>
 
                                         <span
-                                            className={`session-status status-${
-                                                sess.status ||
+                                            className={`session-status status-${sess.status ||
                                                 "active"
-                                            }`}
+                                                }`}
                                         >
                                             {sess.status ||
                                                 "active"}
@@ -1118,7 +1647,9 @@ const handleGenerateQRCode = async () => {
                                                 {Number(
                                                     sess.amount ||
                                                     0
-                                                ).toFixed(2)}
+                                                ).toFixed(
+                                                    2
+                                                )}
 
                                                 {" • "}
 
@@ -1162,7 +1693,6 @@ const handleGenerateQRCode = async () => {
                                                 </button>
                                             )}
                                     </div>
-
                                 </div>
                             )
                         )}
@@ -1171,629 +1701,44 @@ const handleGenerateQRCode = async () => {
                 )}
             </div>
 
-            {/* ==================================================
+            {/* =================================================
                 SESSION DETAILS MODAL
-            ================================================== */}
+            ================================================= */}
 
             {showDetail && (
-                <div
-                    className="session-modal-overlay"
-                    onClick={closeDetails}
-                >
-                    <div
-                        className="session-modal"
-                        onClick={(e) =>
-                            e.stopPropagation()
-                        }
-                    >
-
-                        {/* MODAL HEADER */}
-
-                        <div className="session-modal-header">
-
-                            <div>
-                                <h2>
-                                    Session #{selected?.id}
-                                </h2>
-
-                                <span>
-                                    Complete session information
-                                </span>
-                            </div>
-
-                            <button
-                                className="session-modal-close"
-                                onClick={closeDetails}
-                            >
-                                ×
-                            </button>
-                        </div>
-
-                        {/* MODAL CONTENT */}
-
-                        {detailsLoading ? (
-
-                            <div
-                                className="game-session-loading"
-                                style={{
-                                    minHeight: "200px",
-                                }}
-                            >
-                                <div className="loading-spinner"></div>
-
-                                <p>
-                                    Loading...
-                                </p>
-                            </div>
-
-                        ) : selected ? (
-
-                            <div className="session-modal-body">
-
-                                {/* PLAYER */}
-
-                                <div className="session-detail-row">
-
-                                    <span>
-                                        Player
-                                    </span>
-
-                                    <strong>
-                                        {selected.user_name ||
-                                            "-"}
-                                    </strong>
-                                </div>
-
-                                {/* GAME */}
-
-                                <div className="session-detail-row">
-
-                                    <span>
-                                        Game
-                                    </span>
-
-                                    <strong>
-                                        {selected.game_name ||
-                                            "-"}
-                                    </strong>
-                                </div>
-
-                                {/* STATION */}
-
-                                <div className="session-detail-row">
-
-                                    <span>
-                                        Station
-                                    </span>
-
-                                    <strong>
-                                        {selected.station_name ||
-                                            "-"}
-                                    </strong>
-                                </div>
-
-                                {/* STATUS */}
-
-                                <div className="session-detail-row">
-
-                                    <span>
-                                        Status
-                                    </span>
-
-                                    <span
-                                        className={`session-modal-status status-${selected.status}`}
-                                    >
-                                        {selected.status}
-                                    </span>
-                                </div>
-
-                                {/* DURATION */}
-
-                                <div className="session-detail-row">
-
-                                    <span>
-                                        Duration
-                                    </span>
-
-                                    <strong>
-                                        {selected.duration_minutes
-                                            ? `${selected.duration_minutes}m`
-                                            : "-"}
-                                    </strong>
-                                </div>
-
-                                {/* AMOUNT */}
-
-                                <div className="session-detail-row">
-
-                                    <span>
-                                        Amount
-                                    </span>
-
-                                    <strong>
-                                        ₹
-                                        {Number(
-                                            selected.amount ||
-                                            0
-                                        ).toFixed(2)}
-                                    </strong>
-                                </div>
-
-                                {/* ==================================================
-                                    GAMEPLAY RECORDING
-                                ================================================== */}
-
-                                {canManage &&
-                                    selected.status ===
-                                    "completed" && (
-
-                                        <div
-                                            style={{
-                                                marginTop: "25px",
-                                                paddingTop: "20px",
-                                                borderTop:
-                                                    "1px solid #ddd",
-                                            }}
-                                        >
-
-                                            <h3
-                                                style={{
-                                                    marginBottom:
-                                                        "15px",
-                                                }}
-                                            >
-                                                Gameplay Recording
-                                            </h3>
-
-                                            {/* ======================================
-                                                EXISTING RECORDING
-                                            ====================================== */}
-
-                                            {recording?.video_url ? (
-
-                                                <div
-                                                    style={{
-                                                        marginTop:
-                                                            "20px",
-                                                    }}
-                                                >
-
-                                                    <h3>
-                                                        Uploaded Recording
-                                                    </h3>
-
-                                                    <video
-                                                        controls
-                                                        style={{
-                                                            width:
-                                                                "100%",
-                                                            maxWidth:
-                                                                "700px",
-                                                            marginTop:
-                                                                "10px",
-                                                            borderRadius:
-                                                                "10px",
-                                                        }}
-                                                    >
-                                                        <source
-                                                            src={
-                                                                recording.video_url
-                                                            }
-                                                            type="video/mp4"
-                                                        />
-
-                                                        Your browser does not support video playback.
-                                                    </video>
-
-                                                    <p
-                                                        style={{
-                                                            marginTop:
-                                                                "8px",
-                                                        }}
-                                                    >
-                                                        {recording.file_name ||
-                                                            "Gameplay Recording"}
-                                                    </p>
-
-                                                    <p>
-                                                        Duration:{" "}
-                                                        {recording.duration_seconds
-                                                            ? `${recording.duration_seconds} seconds`
-                                                            : "-"}
-                                                    </p>
-
-                                                    {/* QR BUTTON WILL BE ADDED HERE */}
-
-                                                    <button
-                                                        className="start-session-btn"
-                                                        style={{
-                                                            marginTop:
-                                                                "15px",
-                                                        }}
-                                                        onClick={handleGenerateQRCode}
-                                                    >
-                                                        Generate QR Code
-                                                    </button>
-
-                                                </div>
-
-                                            ) : (
-
-                                                /* ==================================
-                                                    NO RECORDING -> UPLOAD FORM
-                                                ================================== */
-
-                                                <>
-
-                                                    {/* CAMERA */}
-
-                                                    <div className="form-group">
-
-                                                        <label htmlFor="recording_camera">
-                                                            Camera
-                                                        </label>
-
-                                                        <select
-                                                            id="recording_camera"
-                                                            value={
-                                                                selectedCameraId
-                                                            }
-                                                            onChange={(e) =>
-                                                                setSelectedCameraId(
-                                                                    e.target.value
-                                                                )
-                                                            }
-                                                        >
-
-                                                            <option value="">
-                                                                Select Camera
-                                                            </option>
-
-                                                            {cameras.map(
-                                                                (
-                                                                    camera
-                                                                ) => (
-                                                                    <option
-                                                                        key={
-                                                                            camera.id
-                                                                        }
-                                                                        value={
-                                                                            camera.id
-                                                                        }
-                                                                    >
-                                                                        {
-                                                                            camera.camera_name
-                                                                        }
-                                                                    </option>
-                                                                )
-                                                            )}
-
-                                                        </select>
-                                                    </div>
-
-                                                    {/* VIDEO FILE */}
-
-                                                    <div className="form-group">
-
-                                                        <label htmlFor="recording_video">
-                                                            Video File
-                                                        </label>
-
-                                                        <input
-                                                            id="recording_video"
-                                                            type="file"
-                                                            accept="video/*"
-                                                            onChange={(e) =>
-                                                                setSelectedVideo(
-                                                                    e
-                                                                        .target
-                                                                        .files?.[0] ||
-                                                                    null
-                                                                )
-                                                            }
-                                                        />
-
-                                                    </div>
-
-                                                    {/* UPLOAD BUTTON */}
-
-                                                    <button
-                                                        className="start-session-btn"
-                                                        disabled={
-                                                            uploadingVideo ||
-                                                            !selectedCameraId ||
-                                                            !selectedVideo
-                                                        }
-                                                        onClick={
-                                                            handleUploadRecording
-                                                        }
-                                                    >
-                                                        {uploadingVideo
-                                                            ? "Uploading..."
-                                                            : "Upload Recording"}
-                                                    </button>
-
-                                                </>
-                                            )}
-
-                                        </div>
-                                    )}
-
-                            </div>
-
-                        ) : null}
-
-                        {/* MODAL FOOTER */}
-
-                        <div className="session-modal-footer">
-
-                            <button
-                                className="session-modal-close-btn"
-                                onClick={closeDetails}
-                            >
-                                Close
-                            </button>
-
-                        </div>
-
-                    </div>
-                </div>
+                <GameSessionDetailModal
+                    selected={selected}
+                    detailsLoading={detailsLoading}
+                    canManage={canManage}
+                    recording={recording}
+                    cameras={cameras}
+                    selectedCameraId={selectedCameraId}
+                    setSelectedCameraId={setSelectedCameraId}
+                    selectedVideo={selectedVideo}
+                    setSelectedVideo={setSelectedVideo}
+                    uploadingVideo={uploadingVideo}
+                    onClose={closeDetails}
+                    onUpload={handleUploadRecording}
+                    onGenerateQRCode={handleGenerateQRCode}
+                />
             )}
 
-            {/* ==================================================
+            {/* =================================================
                 START SESSION MODAL
-            ================================================== */}
+            ================================================= */}
 
             {showStart && (
-                <div
-                    className="session-modal-overlay"
-                    onClick={closeStartModal}
-                >
-
-                    <div
-                        className="session-modal"
-                        onClick={(e) =>
-                            e.stopPropagation()
-                        }
-                    >
-
-                        {/* MODAL HEADER */}
-
-                        <div className="session-modal-header">
-
-                            <div>
-
-                                <h2>
-                                    Start Game Session
-                                </h2>
-
-                                <span>
-                                    Select a confirmed booking
-                                    to start the session
-                                </span>
-
-                            </div>
-
-                            <button
-                                className="session-modal-close"
-                                onClick={
-                                    closeStartModal
-                                }
-                            >
-                                ×
-                            </button>
-
-                        </div>
-
-                        {/* MODAL BODY */}
-
-                        <div className="session-modal-body">
-
-                            {/* START ERROR */}
-
-                            {startError && (
-                                <div className="session-start-error">
-                                    {startError}
-                                </div>
-                            )}
-
-                            {/* LOADING */}
-
-                            {bookingsLoading ? (
-
-                                <div className="booking-loading-message">
-                                    Loading bookings...
-                                </div>
-
-                            ) : bookings.length === 0 ? (
-
-                                /* NO BOOKINGS */
-
-                                <div
-                                    className="empty-game-sessions"
-                                    style={{
-                                        padding: "30px",
-                                    }}
-                                >
-
-                                    <h3>
-                                        No Bookings
-                                    </h3>
-
-                                    <p>
-                                        No confirmed bookings available.
-                                    </p>
-
-                                </div>
-
-                            ) : (
-
-                                /* BOOKING SELECTION */
-
-                                <>
-
-                                    <div className="form-group">
-
-                                        <label htmlFor="booking_id">
-                                            Select Booking
-                                        </label>
-
-                                        <select
-                                            id="booking_id"
-                                            name="booking_id"
-                                            value={
-                                                selectedBookingId
-                                            }
-                                            onChange={(e) =>
-                                                setSelectedBookingId(
-                                                    e.target.value
-                                                )
-                                            }
-                                        >
-
-                                            <option value="">
-                                                Choose booking
-                                            </option>
-
-                                            {bookings.map(
-                                                (booking) => (
-                                                    <option
-                                                        key={
-                                                            booking.id
-                                                        }
-                                                        value={
-                                                            booking.id
-                                                        }
-                                                    >
-                                                        #{booking.id} -{" "}
-                                                        {
-                                                            booking.game_name
-                                                        }{" "}
-                                                        -{" "}
-                                                        {
-                                                            booking.user_name
-                                                        }
-                                                    </option>
-                                                )
-                                            )}
-
-                                        </select>
-
-                                    </div>
-
-                                    {/* SELECTED BOOKING DETAILS */}
-
-                                    {selectedBookingId &&
-                                        (() => {
-                                            const booking =
-                                                bookings.find(
-                                                    (item) =>
-                                                        String(
-                                                            item.id
-                                                        ) ===
-                                                        String(
-                                                            selectedBookingId
-                                                        )
-                                                );
-
-                                            if (!booking) {
-                                                return null;
-                                            }
-
-                                            return (
-                                                <div className="selected-booking-details">
-
-                                                    {/* PLAYER */}
-
-                                                    <div className="session-detail-row">
-
-                                                        <span>
-                                                            Player
-                                                        </span>
-
-                                                        <strong>
-                                                            {
-                                                                booking.user_name
-                                                            }
-                                                        </strong>
-
-                                                    </div>
-
-                                                    {/* GAME */}
-
-                                                    <div className="session-detail-row">
-
-                                                        <span>
-                                                            Game
-                                                        </span>
-
-                                                        <strong>
-                                                            {
-                                                                booking.game_name
-                                                            }
-                                                        </strong>
-
-                                                    </div>
-
-                                                    {/* STATION */}
-
-                                                    <div className="session-detail-row">
-
-                                                        <span>
-                                                            Station
-                                                        </span>
-
-                                                        <strong>
-                                                            {
-                                                                booking.station_name
-                                                            }
-                                                        </strong>
-
-                                                    </div>
-
-                                                </div>
-                                            );
-                                        })()}
-
-                                </>
-                            )}
-
-                        </div>
-
-                        {/* MODAL FOOTER */}
-
-                        <div className="session-modal-footer">
-
-                            <button
-                                className="session-modal-close-btn"
-                                onClick={
-                                    closeStartModal
-                                }
-                            >
-                                Cancel
-                            </button>
-
-                            <button
-                                className="start-session-btn"
-                                disabled={
-                                    !selectedBookingId ||
-                                    starting
-                                }
-                                onClick={
-                                    handleStart
-                                }
-                            >
-                                {starting
-                                    ? "Starting..."
-                                    : "Start Game"}
-                            </button>
-
-                        </div>
-
-                    </div>
-                </div>
+                <GameSessionStartModal
+                    bookings={bookings}
+                    bookingsLoading={bookingsLoading}
+                    selectedBookingId={selectedBookingId}
+                    setSelectedBookingId={setSelectedBookingId}
+                    starting={starting}
+                    startError={startError}
+                    onClose={closeStartModal}
+                    onStart={handleStart}
+                />
             )}
-
         </div>
     );
 }
