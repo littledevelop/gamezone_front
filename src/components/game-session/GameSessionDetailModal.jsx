@@ -1,17 +1,10 @@
-
 function GameSessionDetailModal({
     selected,
     detailsLoading,
     canManage,
     recording,
-    cameras,
-    selectedCameraId,
-    setSelectedCameraId,
-    selectedVideo,
-    setSelectedVideo,
-    uploadingVideo,
+    sessionPhotos, // NEW
     onClose,
-    onUpload,
     onGenerateQRCode,
 }) {
     return (
@@ -60,6 +53,7 @@ function GameSessionDetailModal({
                     </div>
                 ) : selected ? (
                     <div className="session-modal-body">
+
                         <div className="session-detail-row">
                             <span>Player</span>
                             <strong>
@@ -109,6 +103,58 @@ function GameSessionDetailModal({
                             </strong>
                         </div>
 
+                        {/* SESSION PHOTOS */}
+                        <div
+                            style={{
+                                marginTop: "25px",
+                                paddingTop: "20px",
+                                borderTop: "1px solid #ddd",
+                            }}
+                        >
+                            <h3>Session Photos</h3>
+
+                            {sessionPhotos?.length > 0 ? (
+                                <div
+                                    style={{
+                                        display: "grid",
+                                        gridTemplateColumns:
+                                            "repeat(auto-fill, minmax(130px, 1fr))",
+                                        gap: "12px",
+                                        marginTop: "15px",
+                                    }}
+                                >
+                                    {sessionPhotos.map((photo) => {
+                                        const photoUrl =
+                                            photo.cloudinary_url ||
+                                            photo.photo_url ||
+                                            photo.image_url;
+
+                                        if (!photoUrl) return null;
+
+                                        return (
+                                            <img
+                                                key={photo.id}
+                                                src={photoUrl}
+                                                alt={`Session ${selected.id} photo`}
+                                                loading="lazy"
+                                                style={{
+                                                    width: "100%",
+                                                    height: "130px",
+                                                    objectFit: "cover",
+                                                    borderRadius: "10px",
+                                                    border: "1px solid #ddd",
+                                                }}
+                                            />
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <p style={{ marginTop: "12px" }}>
+                                    No photos available for this session.
+                                </p>
+                            )}
+                        </div>
+
                         {/* GAMEPLAY RECORDING */}
                         {canManage &&
                             selected.status === "completed" && (
@@ -119,32 +165,48 @@ function GameSessionDetailModal({
                                         borderTop: "1px solid #ddd",
                                     }}
                                 >
-                                    <h3 style={{ marginBottom: "15px" }}>
+                                    <h3>
                                         Gameplay Recording
                                     </h3>
 
                                     {recording?.video_url ? (
-                                        <div style={{ marginTop: "20px" }}>
-                                            <h3>Uploaded Recording</h3>
+                                        <div
+                                            style={{
+                                                marginTop: "15px",
+                                            }}
+                                        >
+                                            <div
+                                                style={{
+                                                    marginBottom: "10px",
+                                                }}
+                                            >
+                                                ✓ Recording completed
+                                            </div>
 
                                             <video
                                                 controls
                                                 style={{
                                                     width: "100%",
                                                     maxWidth: "700px",
-                                                    marginTop: "10px",
                                                     borderRadius: "10px",
                                                 }}
                                             >
                                                 <source
-                                                    src={recording.video_url}
+                                                    src={
+                                                        recording.video_url
+                                                    }
                                                     type="video/mp4"
                                                 />
-                                                Your browser does not support
-                                                video playback.
+
+                                                Your browser does not
+                                                support video playback.
                                             </video>
 
-                                            <p style={{ marginTop: "8px" }}>
+                                            <p
+                                                style={{
+                                                    marginTop: "8px",
+                                                }}
+                                            >
                                                 {recording.file_name ||
                                                     "Gameplay Recording"}
                                             </p>
@@ -159,89 +221,34 @@ function GameSessionDetailModal({
                                             <button
                                                 type="button"
                                                 className="start-session-btn"
-                                                style={{ marginTop: "15px" }}
+                                                style={{
+                                                    marginTop: "15px",
+                                                }}
                                                 disabled={!recording.id}
-                                                onClick={onGenerateQRCode}
+                                                onClick={
+                                                    onGenerateQRCode
+                                                }
                                             >
                                                 Generate QR Code
                                             </button>
                                         </div>
                                     ) : (
-                                        <>
-                                            {/* CAMERA SELECTION */}
-                                            <div className="form-group">
-                                                <label htmlFor="recording_camera">
-                                                    Camera
-                                                </label>
-
-                                                <select
-                                                    id="recording_camera"
-                                                    value={selectedCameraId}
-                                                    disabled={uploadingVideo}
-                                                    onChange={(e) =>
-                                                        setSelectedCameraId(
-                                                            e.target.value
-                                                        )
-                                                    }
-                                                >
-                                                    <option value="">
-                                                        Select Camera
-                                                    </option>
-
-                                                    {cameras.map((camera) => (
-                                                        <option
-                                                            key={camera.id}
-                                                            value={camera.id}
-                                                        >
-                                                            {camera.camera_name}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-
-                                            {/* VIDEO FILE */}
-                                            <div className="form-group">
-                                                <label htmlFor="recording_video">
-                                                    Video File
-                                                </label>
-
-                                                <input
-                                                    id="recording_video"
-                                                    type="file"
-                                                    accept="video/*"
-                                                    disabled={uploadingVideo}
-                                                    onChange={(e) =>
-                                                        setSelectedVideo(
-                                                            e.target.files?.[0] ||
-                                                            null
-                                                        )
-                                                    }
-                                                />
-                                            </div>
-
-                                            {/* UPLOAD */}
-                                            <button
-                                                type="button"
-                                                className="start-session-btn"
-                                                disabled={
-                                                    uploadingVideo ||
-                                                    !selectedCameraId ||
-                                                    !selectedVideo
-                                                }
-                                                onClick={onUpload}
-                                            >
-                                                {uploadingVideo
-                                                    ? "Uploading..."
-                                                    : "Upload Recording"}
-                                            </button>
-                                        </>
+                                        <div
+                                            style={{
+                                                marginTop: "15px",
+                                            }}
+                                        >
+                                            Recording not available.
+                                        </div>
                                     )}
                                 </div>
                             )}
                     </div>
                 ) : (
                     <div className="session-modal-body">
-                        <p>Session details could not be loaded.</p>
+                        <p>
+                            Session details could not be loaded.
+                        </p>
                     </div>
                 )}
 

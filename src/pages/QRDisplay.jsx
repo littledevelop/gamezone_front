@@ -9,6 +9,8 @@ function QRDisplay({ qrCode }) {
 
     useEffect(() => {
         const loadQR = async () => {
+            console.log("QRDisplay loadQR started");
+
             try {
                 const response = await api.get(
                     `/qr-codes/video/${qrCode}`
@@ -20,12 +22,15 @@ function QRDisplay({ qrCode }) {
 
                     setData(qrData);
 
-                    const videoUrl =
-                        `${window.location.origin}/video/${qrCode}`;
+                    // const videoUrl =
+                    // `${import.meta.env.VITE_FRONTEND_URL || window.location.origin}/video/${qrCode}`;
 
-                    //                 const videoUrl =
-                    // `http://10.173.94.209:5173/video/${qrCode}`;
+                    const videoUrl = `http://10.152.156.209:5173/video/${qrCode}`;
 
+                    setData((prev) => ({
+                        ...prev,
+                        debugVideoUrl: videoUrl,
+                    }));
                     const image = await QRCode.toDataURL(videoUrl, {
                         width: 500,
                         margin: 2,
@@ -82,7 +87,9 @@ function QRDisplay({ qrCode }) {
         >
             <div>
                 <h1>Scan to Watch Your Video</h1>
-
+                <p style={{ overflowWrap: "anywhere" }}>
+                    QR URL: {data?.debugVideoUrl}
+                </p>
                 {qrImage && (
                     <img
                         src={qrImage}

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { Search, Play, Square } from "lucide-react";
+import { Search, Play, Square, Camera } from "lucide-react";
 
 import api from "../api/axios";
 import "../styles/GameSession.css";
@@ -11,10 +11,6 @@ import GameSessionDetailModal from "../components/game-session/GameSessionDetail
 const CAMERA_SERVICE_URL = "http://localhost:6100";
 
 function GameSession() {
-    // =========================================================
-    // USER / ROLE
-    // =========================================================
-
     const canManage = isAdminOrStaff();
 
     const user = JSON.parse(
@@ -23,66 +19,29 @@ function GameSession() {
 
     const role = user?.role_name || "Player";
     const isPlayer = role === "Player";
-
-    // =========================================================
-    // SESSIONS
-    // =========================================================
-
     const [sessions, setSessions] = useState([]);
     const [filter, setFilter] = useState("");
     const [loading, setLoading] = useState(true);
     const manualEndingSessionsRef = useRef(new Set());
-    // =========================================================
-    // MESSAGES
-    // =========================================================
-
     const [message, setMessage] = useState("");
     const [startError, setStartError] = useState("");
-
-    // =========================================================
-    // START SESSION
-    // =========================================================
-
     const [showStart, setShowStart] = useState(false);
     const [selectedBookingId, setSelectedBookingId] = useState("");
     const [bookings, setBookings] = useState([]);
     const [bookingsLoading, setBookingsLoading] = useState(false);
     const [starting, setStarting] = useState(false);
-
-    // =========================================================
-    // TIMER
-    // =========================================================
-
     const [currentTime, setCurrentTime] = useState(null);
-
-    // =========================================================
-    // SESSION DETAILS
-    // =========================================================
-
     const [selected, setSelected] = useState(null);
     const [showDetail, setShowDetail] = useState(false);
     const [detailsLoading, setDetailsLoading] = useState(false);
-
-    // =========================================================
-    // RECORDING
-    // =========================================================
-
-    const [cameras, setCameras] = useState([]);
-    const [selectedCameraId, setSelectedCameraId] = useState("");
-    const [selectedVideo, setSelectedVideo] = useState(null);
-    const [uploadingVideo, setUploadingVideo] = useState(false);
+    // const [cameras, setCameras] = useState([]);
+    // const [selectedCameraId, setSelectedCameraId] = useState("");
+    // const [selectedVideo, setSelectedVideo] = useState(null);
+    // const [uploadingVideo, setUploadingVideo] = useState(false);
+    const [sessionPhotos, setSessionPhotos] = useState([]);
+    const [capturingPhoto, setCapturingPhoto] = useState(false);
     const [recording, setRecording] = useState(null);
-
-    // =========================================================
-    // PREVENT DUPLICATE AUTO END REQUESTS
-    // =========================================================
-
     const endingSessionsRef = useRef(new Set());
-
-    // =========================================================
-    // FETCH SESSIONS
-    // =========================================================
-
     const fetchSessions = useCallback(async () => {
         try {
             const res = await api
@@ -122,10 +81,6 @@ function GameSession() {
         }
     }, [isPlayer, user?.id]);
 
-    // =========================================================
-    // FETCH CONFIRMED BOOKINGS
-    // =========================================================
-
     const fetchBookings = useCallback(async () => {
         try {
             setBookingsLoading(true);
@@ -159,21 +114,128 @@ function GameSession() {
                     )
             );
 
-            if (bookingRes.data.success) {
-                const confirmedBookings =
-                    (
-                        bookingRes.data.bookings || []
-                    ).filter(
-                        (booking) =>
-                            booking.status ===
-                            "confirmed" &&
-                            !activeBookingIds.has(
-                                String(booking.id)
-                            )
-                    );
+            // if (bookingRes.data.success) {
+            //     const confirmedBookings =
+            //         (
+            //             bookingRes.data.bookings || []
+            //         ).filter(
+            //             (booking) =>
+            //                 booking.status ===
+            //                 "confirmed" &&
+            //                 !activeBookingIds.has(
+            //                     String(booking.id)
+            //                 )
+            //         );
 
-                setBookings(confirmedBookings);
+            //     setBookings(confirmedBookings);
+            // }
+
+
+            if (bookingRes.data.success) {
+                const now = new Date();
+
+                // Local date and time, matching the session start-time convention.
+                const pad = (value) => String(value).padStart(2, "0");
+
+                const today =
+                    `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+
+                const currentTime =
+                    `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+
+                console.log("BOOKING API RESPONSE:", bookingRes.data);
+                console.log("ALL SESSIONS:", allSessions);
+                console.log("ACTIVE BOOKING IDS:", [...activeBookingIds]);
+                console.log("CURRENT DATE:", today);
+                console.log("CURRENT TIME:", currentTime);
+
+                // const eligibleBookings = (
+                //     bookingRes.data.bookings || []
+                // ).filter((booking) => {
+                //     if (
+                //         String(booking.status).toLowerCase() !== "confirmed" ||
+                //         activeBookingIds.has(String(booking.id))
+                //     ) {
+                //         return false;
+                //     }
+
+                //     // Normalize booking date to YYYY-MM-DD.
+                //     const bookingDate = String(
+                //         booking.booking_date || ""
+                //     ).slice(0, 10);
+
+                //     // Normalize times to HH:mm:ss.
+                //     const startTime = String(
+                //         booking.start_time || ""
+                //     ).slice(0, 8);
+
+                //     const endTime = String(
+                //         booking.end_time || ""
+                //     ).slice(0, 8);
+
+                //     // Only today's bookings that are currently within
+                //     // their reserved time slot can start a session.
+                //     return (
+                //         bookingDate === today &&
+                //         startTime <= currentTime &&
+                //         endTime > currentTime
+                //     );
+                // });
+
+
+                const eligibleBookings = (
+                    bookingRes.data.bookings || []
+                ).filter((booking) => {
+                    const bookingDate = String(
+                        booking.booking_date || ""
+                    ).slice(0, 10);
+
+                    const startTime = String(
+                        booking.start_time || ""
+                    ).slice(0, 8);
+
+                    const endTime = String(
+                        booking.end_time || ""
+                    ).slice(0, 8);
+
+                    const isConfirmed =
+                        String(booking.status).toLowerCase() === "confirmed";
+
+                    const isActive =
+                        activeBookingIds.has(String(booking.id));
+
+                    const isToday =
+                        bookingDate === today;
+
+                    const isWithinTime =
+                        startTime <= currentTime &&
+                        endTime > currentTime;
+
+                    console.log("BOOKING CHECK:", {
+                        id: booking.id,
+                        bookingDate,
+                        startTime,
+                        endTime,
+                        status: booking.status,
+                        isConfirmed,
+                        isActive,
+                        isToday,
+                        isWithinTime
+                    });
+
+                    return (
+                        isConfirmed &&
+                        !isActive &&
+                        isToday &&
+                        isWithinTime
+                    );
+                });
+
+                setBookings(eligibleBookings);
             }
+
+
+
         } catch (err) {
             console.error(
                 "Fetch Bookings Error:",
@@ -186,47 +248,39 @@ function GameSession() {
         }
     }, []);
 
-    // =========================================================
-    // FETCH CAMERAS
-    // =========================================================
+    // const fetchCameras = useCallback(async () => {
+    //     try {
+    //         const res = await api.get("/cameras");
 
-    const fetchCameras = useCallback(async () => {
-        try {
-            const res = await api.get("/cameras");
+    //         if (res.data.success) {
+    //             const activeCameras =
+    //                 (res.data.data || []).filter(
+    //                     (camera) =>
+    //                         camera.status === "active"
+    //                 );
 
-            if (res.data.success) {
-                const activeCameras =
-                    (res.data.data || []).filter(
-                        (camera) =>
-                            camera.status === "active"
-                    );
+    //             setCameras(activeCameras);
+    //         }
+    //     } catch (err) {
+    //         console.error(
+    //             "Fetch Cameras Error:",
+    //             err
+    //         );
+    //     }
+    // }, []);
 
-                setCameras(activeCameras);
-            }
-        } catch (err) {
-            console.error(
-                "Fetch Cameras Error:",
-                err
-            );
-        }
-    }, []);
-
-    // =========================================================
-    // GET SESSION DETAILS
-    // =========================================================
 
     const getById = useCallback(
         async (id) => {
             try {
                 setDetailsLoading(true);
                 setShowDetail(true);
+                setSessionPhotos([]);
 
                 const res = await api
                     .get(`/game-session/${id}`)
                     .catch(() =>
-                        api.get(
-                            `/game-sessions/${id}`
-                        )
+                        api.get(`/game-sessions/${id}`)
                     );
 
                 if (res.data.success) {
@@ -237,16 +291,26 @@ function GameSession() {
                     setSelected(sessionData);
 
                     setRecording(
-                        sessionData?.recording ||
-                        null
+                        sessionData?.recording || null
+                    );
+                }
+
+                // Load photos separately
+                try {
+                    const photoRes = await api.get(
+                        `/game-session-photos/session/${id}`
                     );
 
-                    setSelectedCameraId("");
-                    setSelectedVideo(null);
-
-                    if (canManage) {
-                        await fetchCameras();
+                    if (photoRes.data.success) {
+                        setSessionPhotos(
+                            photoRes.data.data || []
+                        );
                     }
+                } catch (photoErr) {
+                    console.error(
+                        "Get Session Photos Error:",
+                        photoErr.response?.data || photoErr
+                    );
                 }
             } catch (err) {
                 console.error(
@@ -254,105 +318,212 @@ function GameSession() {
                     err
                 );
 
-                setMessage(
-                    "Failed to load details"
-                );
+                setMessage("Failed to load details");
             } finally {
                 setDetailsLoading(false);
             }
         },
-        [canManage, fetchCameras]
+        []
     );
 
-    // =========================================================
-    // UPLOAD GAMEPLAY RECORDING
-    // =========================================================
 
-    const handleUploadRecording = async () => {
-        if (!selected?.id) {
-            setMessage("Session not selected");
+    const handleCapturePhoto = async (session) => {
+        if (!session?.id) {
+            setMessage("Session ID not found");
             return;
         }
 
-        if (!selectedCameraId) {
-            setMessage("Please select a camera");
-            return;
-        }
-
-        if (!selectedVideo) {
-            setMessage("Please select a video file");
+        if (session.status !== "preparing") {
+            setMessage(
+                "Photos can only be captured before the game starts"
+            );
             return;
         }
 
         try {
-            setUploadingVideo(true);
-            setMessage("Uploading video...");
+            setCapturingPhoto(true);
+            setMessage("Capturing photo...");
 
-            const formData = new FormData();
-
-            formData.append(
-                "video",
-                selectedVideo
+            // Get cameras assigned to this game
+            const cameraResponse = await api.get(
+                `/game-cameras/game/${session.game_id}`
             );
 
-            formData.append(
-                "session_id",
-                selected.id
-            );
-
-            formData.append(
-                "camera_id",
-                selectedCameraId
-            );
-
-            const res = await api.post(
-                "/video-recordings/upload",
-                formData,
-                {
-                    headers: {
-                        "Content-Type":
-                            "multipart/form-data",
-                    },
-                }
-            );
-
-            if (res.data.success) {
-                setMessage(
-                    "Recording uploaded successfully"
-                );
-
-                setRecording(res.data.data);
-
-                setSelectedVideo(null);
-                setSelectedCameraId("");
-
-                await fetchSessions();
-
-                await getById(selected.id);
-            } else {
-                setMessage(
-                    res.data.message ||
-                    "Failed to upload recording"
+            if (
+                !cameraResponse.data.success ||
+                !Array.isArray(cameraResponse.data.data) ||
+                cameraResponse.data.data.length === 0
+            ) {
+                throw new Error(
+                    "No active cameras are assigned to this game."
                 );
             }
-        } catch (err) {
-            console.error(
-                "Upload Recording Error:",
-                err
+
+            const assignedCameras =
+                cameraResponse.data.data;
+
+            // Capture photo from the first assigned camera
+            const camera = assignedCameras[0];
+
+            const databaseCameraId = Number(
+                camera.camera_id ?? camera.id
             );
 
-            setMessage(
-                err.response?.data?.message ||
-                "Failed to upload recording"
+            if (
+                !Number.isInteger(databaseCameraId) ||
+                databaseCameraId <= 0
+            ) {
+                throw new Error(
+                    "Invalid database camera ID."
+                );
+            }
+
+            const cameraId = "camera_1";
+
+            const response = await fetch(
+                `${CAMERA_SERVICE_URL}/camera/capture-photo`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        sessionId: session.id,
+                        cameraId,
+                        databaseCameraId,
+                    }),
+                }
             );
+            console.log("PHOTO HTTP STATUS:", response.status);
+            console.log("PHOTO CONTENT TYPE:", response.headers.get("content-type"));
+
+            let data;
+
+            try {
+                data = await response.json();
+            } catch (jsonError) {
+                throw new Error(
+                    "Camera service returned an invalid response.",
+                    { cause: jsonError }
+                );
+            }
+            console.log(
+                "CAPTURE PHOTO RESPONSE:",
+                data
+            );
+
+            if (!response.ok || !data.success) {
+                throw new Error(
+                    data.message ||
+                    "Photo capture failed."
+                );
+            }
+
+            setMessage(
+                "Photo captured and uploaded successfully"
+            );
+            // Refresh session details and photos if the details modal is open
+            if (showDetail && selected?.id === session.id) {
+                await getById(session.id);
+            }
+            return true;
+
+        } catch (error) {
+            console.error("Capture Photo Error:", error);
+
+            setMessage(
+                error.message || "Failed to capture photo"
+            );
+
+            return false;
+
+
         } finally {
-            setUploadingVideo(false);
+            setCapturingPhoto(false);
         }
     };
 
-    // =========================================================
-    // GENERATE QR CODE
-    // =========================================================
+    // const handleUploadRecording = async () => {
+    //     if (!selected?.id) {
+    //         setMessage("Session not selected");
+    //         return;
+    //     }
+
+    //     if (!selectedCameraId) {
+    //         setMessage("Please select a camera");
+    //         return;
+    //     }
+
+    //     if (!selectedVideo) {
+    //         setMessage("Please select a video file");
+    //         return;
+    //     }
+
+    //     try {
+    //         setUploadingVideo(true);
+    //         setMessage("Uploading video...");
+
+    //         const formData = new FormData();
+
+    //         formData.append(
+    //             "video",
+    //             selectedVideo
+    //         );
+
+    //         formData.append(
+    //             "session_id",
+    //             selected.id
+    //         );
+
+    //         formData.append(
+    //             "camera_id",
+    //             selectedCameraId
+    //         );
+
+    //         const res = await api.post(
+    //             "/video-recordings/upload",
+    //             formData,
+    //             {
+    //                 headers: {
+    //                     "Content-Type":
+    //                         "multipart/form-data",
+    //                 },
+    //             }
+    //         );
+
+    //         if (res.data.success) {
+    //             setMessage(
+    //                 "Recording uploaded successfully"
+    //             );
+
+    //             setRecording(res.data.data);
+
+    //             setSelectedVideo(null);
+    //             setSelectedCameraId("");
+
+    //             await fetchSessions();
+
+    //             await getById(selected.id);
+    //         } else {
+    //             setMessage(
+    //                 res.data.message ||
+    //                 "Failed to upload recording"
+    //             );
+    //         }
+    //     } catch (err) {
+    //         console.error(
+    //             "Upload Recording Error:",
+    //             err
+    //         );
+
+    //         setMessage(
+    //             err.response?.data?.message ||
+    //             "Failed to upload recording"
+    //         );
+    //     } finally {
+    //         setUploadingVideo(false);
+    //     }
+    // };
 
     const handleGenerateQRCode = async () => {
         try {
@@ -398,10 +569,6 @@ function GameSession() {
         }
     };
 
-    // =========================================================
-    // START SESSION
-    // =========================================================
-
     const handleStart = async () => {
         if (!selectedBookingId) {
             setStartError("Please select a booking.");
@@ -429,10 +596,6 @@ function GameSession() {
                 throw new Error("Selected booking not found.");
             }
 
-            // -------------------------------------------------
-            // START TIME
-            // -------------------------------------------------
-
             const startTime = new Date();
 
             // Convert to MySQL DATETIME
@@ -443,10 +606,6 @@ function GameSession() {
                 `${String(startTime.getHours()).padStart(2, "0")}:` +
                 `${String(startTime.getMinutes()).padStart(2, "0")}:` +
                 `${String(startTime.getSeconds()).padStart(2, "0")}`;
-
-            // -------------------------------------------------
-            // CREATE GAME SESSION
-            // -------------------------------------------------
 
             const res = await api.post(
                 "/game-session",
@@ -461,12 +620,25 @@ function GameSession() {
                         selectedBooking.duration ??
                         0,
                     amount: selectedBooking.amount ?? 0,
-                    status: "active",
+                    status: String(selectedBooking.game_name || "")
+                        .toLowerCase()
+                        .includes("laser tag")
+                        ? "preparing"
+                        : "active",
                     recording_status: "not_recorded"
                 }
             );
 
             if (!res.data?.success) {
+                console.log("CREATE SESSION RESPONSE:", res.data);
+                console.log("SELECTED BOOKING:", selectedBooking);
+                console.log("SESSION PAYLOAD:", {
+                    user_id: selectedBooking.user_id,
+                    game_id: selectedBooking.game_id,
+                    station_id: selectedBooking.station_id,
+                    booking_id: selectedBooking.id,
+                    start_time: mysqlStartTime,
+                });
                 throw new Error(
                     res.data?.message ||
                     "Game session could not be created."
@@ -486,9 +658,25 @@ function GameSession() {
                 sessionId
             );
 
-            // -------------------------------------------------
-            // START CAMERA RECORDING
-            // -------------------------------------------------
+            const isLaserTag = String(
+                selectedBooking.game_name || ""
+            )
+                .toLowerCase()
+                .includes("laser tag");
+
+            if (isLaserTag) {
+                setMessage(
+                    "Laser Tag session prepared. Capture the players' photos, then click Start Game."
+                );
+
+                setShowStart(false);
+                setSelectedBookingId("");
+
+                await fetchSessions();
+                await fetchBookings();
+
+                return;
+            }
 
             try {
                 await startCameraRecording({
@@ -525,10 +713,6 @@ function GameSession() {
                     cameraError
                 );
 
-                // -------------------------------------------------
-                // STOP ANY CAMERA RECORDING THAT MAY HAVE STARTED
-                // -------------------------------------------------
-
                 try {
                     await stopCameraRecording(sessionId);
                 } catch (stopError) {
@@ -537,10 +721,6 @@ function GameSession() {
                         stopError
                     );
                 }
-
-                // -------------------------------------------------
-                // CANCEL GAME SESSION
-                // -------------------------------------------------
 
                 try {
                     const cancelRes = await api.put(
@@ -551,8 +731,6 @@ function GameSession() {
                             recording_status: "not_recorded"
                         }
                     );
-
-
 
                     if (
                         !cancelRes.data ||
@@ -574,17 +752,10 @@ function GameSession() {
                         return;
                     }
 
-
-
-
-
                     console.log(
                         "SESSION CANCELLED:",
                         sessionId
                     );
-
-
-
 
                 } catch (cancelError) {
                     console.error(
@@ -611,9 +782,6 @@ function GameSession() {
                         cancelError.message
                     );
 
-
-
-
                     setStartError(
                         "Camera recording failed, and the session could not be cancelled. Please refresh and check the session status."
                     );
@@ -621,10 +789,6 @@ function GameSession() {
                     await fetchSessions();
                     return;
                 }
-
-                // -------------------------------------------------
-                // CAMERA FAILED BUT SESSION CANCELLED
-                // -------------------------------------------------
 
                 setStartError(
                     cameraError.message ||
@@ -644,16 +808,21 @@ function GameSession() {
                 error.response?.data ||
                 error.message
             );
+            console.error("START GAME SESSION ERROR:", error.message);
 
+            console.error(
+                "BACKEND ERROR RESPONSE:",
+                JSON.stringify(error.response?.data ?? null, null, 2)
+            );
+
+            console.error("HTTP STATUS:", error.response?.status);
+
+            console.error("FULL ERROR:", error);
             setStartError(
                 error.response?.data?.message ||
                 error.message ||
                 "Unable to start game session."
             );
-
-            // -------------------------------------------------
-            // IF SESSION WAS CREATED BUT SOMETHING FAILED
-            // -------------------------------------------------
 
             if (sessionId) {
                 try {
@@ -688,9 +857,107 @@ function GameSession() {
     };
 
 
-    // =========================================================
-    // START CAMERA RECORDING
-    // =========================================================
+    const handleStartGame = async (session) => {
+        if (!session?.id || session.status !== "preparing") {
+            setMessage("Only a preparing session can be started.");
+            return;
+        }
+
+        setStarting(true);
+        setMessage("");
+
+        try {
+            // 1. Change the session to active.
+            const activateRes = await api.put(
+                `/game-session/${session.id}`,
+                {
+                    status: "active",
+                }
+            );
+
+            if (!activateRes.data?.success) {
+                throw new Error(
+                    activateRes.data?.message ||
+                    "Could not activate the game session."
+                );
+            }
+
+            // 2. Start recording only after the staff clicks Start Game.
+            await startCameraRecording({
+                sessionId: session.id,
+                gameId: session.game_id,
+                playerName: session.user_name || "Player",
+                gameName: session.game_name || "Laser Tag",
+            });
+
+            // 3. Save the recording state.
+            const recordingRes = await api.put(
+                `/game-session/${session.id}`,
+                {
+                    recording_status: "recording",
+                }
+            );
+
+            if (!recordingRes.data?.success) {
+                throw new Error(
+                    recordingRes.data?.message ||
+                    "Recording started, but the session recording status could not be updated."
+                );
+            }
+
+            setMessage(
+                "Laser Tag game started and camera recording is running."
+            );
+
+            await fetchSessions();
+            await fetchBookings();
+        } catch (error) {
+            console.error("START GAME ERROR:", error);
+
+            // Stop any cameras that may have started.
+            const stopResult = await stopCameraRecording(session.id);
+
+            // Cancel the session so the station can be released.
+            try {
+                const cancelRes = await api.put(
+                    `/game-session/${session.id}`,
+                    {
+                        status: "cancelled",
+                        recording_status: "not_recorded",
+                    }
+                );
+
+                if (!cancelRes.data?.success) {
+                    throw new Error(
+                        cancelRes.data?.message ||
+                        "Could not cancel the session.",
+                        { cause: error }
+                    );
+                }
+
+                setMessage(
+                    stopResult.success
+                        ? `${error.message} The session was cancelled.`
+                        : `${error.message} The session was cancelled, but camera cleanup needs checking.`
+                );
+            } catch (cancelError) {
+                console.error(
+                    "SESSION CANCELLATION ERROR:",
+                    cancelError
+                );
+
+                setMessage(
+                    `${error.message} Please check the session and camera status before retrying.`
+                );
+            }
+
+            await fetchSessions();
+            await fetchBookings();
+        } finally {
+            setStarting(false);
+        }
+    };
+
 
     const startCameraRecording = async ({
         sessionId,
@@ -709,19 +976,11 @@ function GameSession() {
                 }
             );
 
-            // =================================================
-            // VALIDATE GAME ID
-            // =================================================
-
             if (!gameId) {
                 throw new Error(
                     "Game ID is missing."
                 );
             }
-
-            // =================================================
-            // GET CAMERAS ASSIGNED TO GAME
-            // =================================================
 
             const cameraResponse =
                 await api.get(
@@ -747,10 +1006,6 @@ function GameSession() {
             const assignedCameras =
                 cameraResponse.data.data;
 
-            // =================================================
-            // CAMERA IS COMPULSORY
-            // =================================================
-
             if (
                 assignedCameras.length === 0
             ) {
@@ -765,10 +1020,6 @@ function GameSession() {
             );
 
             const startedCameras = [];
-
-            // =================================================
-            // START EVERY ASSIGNED CAMERA
-            // =================================================
 
             for (
                 let index = 0;
@@ -847,9 +1098,6 @@ function GameSession() {
                     );
                 }
 
-                // =================================================
-                // HANDLE NON-JSON / EMPTY RESPONSE
-                // =================================================
 
                 let data;
 
@@ -877,10 +1125,6 @@ function GameSession() {
                     data
                 );
 
-                // =================================================
-                // CAMERA START FAILED
-                // =================================================
-
                 if (
                     !response.ok ||
                     !data.success
@@ -890,10 +1134,6 @@ function GameSession() {
                         `Failed to start camera recording for ${camera.camera_name}.`
                     );
                 }
-
-                // =================================================
-                // CAMERA START SUCCESS
-                // =================================================
                 startedCameras.push({
                     databaseCameraId,
                     cameraId,
@@ -903,10 +1143,6 @@ function GameSession() {
                     `Camera started successfully: ${camera.camera_name} → ${cameraId}`
                 );
             }
-
-            // =================================================
-            // VERIFY ALL CAMERAS STARTED
-            // =================================================
 
             if (
                 startedCameras.length !==
@@ -939,10 +1175,6 @@ function GameSession() {
             throw error;
         }
     };
-
-    // =========================================================
-    // STOP CAMERA RECORDING
-    // =========================================================
 
     const stopCameraRecording = async (sessionId) => {
         try {
@@ -996,12 +1228,37 @@ function GameSession() {
                 );
             }
 
+            const uploadResults =
+                data.uploadResults || [];
+
+            const hasFailedUpload =
+                uploadResults.some(
+                    (item) => item.success !== true
+                );
+
             return {
-                success: true,
+                success:
+                    response.ok &&
+                    data.success === true &&
+                    !hasFailedUpload,
+
                 stopped:
                     data.stoppedCameras || [],
-            };
 
+                uploadResults,
+
+                message:
+                    hasFailedUpload
+                        ? (
+                            uploadResults.find(
+                                (item) => item.success !== true
+                            )?.message ||
+                            "Video upload failed."
+                        )
+                        : (
+                            data.message || ""
+                        )
+            };
         } catch (error) {
             console.error(
                 "Camera Stop Error:",
@@ -1018,15 +1275,69 @@ function GameSession() {
         }
     };
 
-    // =========================================================
-    // END SESSION
-    // =========================================================
+    const generateQRCodeForUpload = async (sessionId, cameraResult) => {
+        const uploadedRecording = (
+            cameraResult?.uploadResults || []
+        ).find((item) => item.success);
 
+        if (!uploadedRecording) {
+            console.error(
+                "QR NOT GENERATED: No successful video upload",
+                cameraResult?.uploadResults
+            );
+
+            return {
+                success: false,
+                message: "Video upload failed. QR code was not generated."
+            };
+        }
+
+        // Extract the recording ID returned by the backend.
+        const uploadData = uploadedRecording.data;
+
+        const recordingId =
+            uploadData?.data?.id ??
+            uploadData?.recording?.id ??
+            uploadData?.id;
+
+        if (!recordingId) {
+            console.error(
+                "QR NOT GENERATED: Recording ID missing",
+                uploadData
+            );
+
+            return {
+                success: false,
+                message: "Video uploaded, but its recording ID was not returned."
+            };
+        }
+
+        const response = await api.post("/qr-codes/video", {
+            session_id: sessionId,
+            video_recording_id: recordingId
+        });
+
+        if (!response.data?.success) {
+            throw new Error(
+                response.data?.message || "QR code generation failed."
+            );
+        }
+
+        console.log("VIDEO QR GENERATED:", response.data);
+
+        return {
+            success: true,
+            data: response.data.data
+        };
+    };
 
     const handleEnd = async (session) => {
         // Prevent duplicate clicks for the same session
         if (manualEndingSessionsRef.current.has(session.id)) {
-            console.log("End Session already in progress:", session.id);
+            console.log(
+                "End Session already in progress:",
+                session.id
+            );
             return;
         }
 
@@ -1043,62 +1354,198 @@ function GameSession() {
 
             setMessage("");
 
-            const now = new Date();
-            const pad = (value) => String(value).padStart(2, "0");
+            // -------------------------------------------------
+            // 1. STOP CAMERA + UPLOAD VIDEO FIRST
+            // -------------------------------------------------
 
-            const endTime =
-                `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ` +
-                `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+            console.log(
+                "ENDING SESSION - STOPPING CAMERA:",
+                session.id
+            );
 
-            const res = await api.put(`/game-session/${session.id}`, {
-                end_time: endTime,
-                status: "completed",
-            });
+            const cameraResult =
+                await stopCameraRecording(session.id);
 
-            if (!res.data.success) {
-                setMessage(res.data.message || "Failed to end game session");
+            console.log(
+                "CAMERA STOP RESULT:",
+                cameraResult
+            );
+
+            if (!cameraResult.success) {
+                console.error(
+                    "CAMERA STOP / VIDEO UPLOAD FAILED:",
+                    cameraResult
+                );
+
+                setMessage(
+                    cameraResult.message ||
+                    "Camera recording could not be stopped. Session remains active."
+                );
+
+                await fetchSessions();
                 return;
             }
 
-            // Stop the camera once and report its result separately
-            try {
-                const cameraResult = await stopCameraRecording(session.id);
+            // -------------------------------------------------
+            // 2. VERIFY VIDEO UPLOAD RESULT
+            // -------------------------------------------------
 
-                if (cameraResult.success) {
-                    setMessage(
-                        "Game session and camera recording ended successfully"
-                    );
-                } else {
-                    setMessage(
-                        "Game session ended, but camera recording could not be stopped"
-                    );
-                }
-            } catch (cameraError) {
-                console.error("Camera Stop Error:", cameraError);
+            const uploadResults =
+                cameraResult.uploadResults || [];
+
+            const failedUploads =
+                uploadResults.filter(
+                    (item) => item.success !== true
+                );
+
+            if (failedUploads.length > 0) {
+                console.error(
+                    "VIDEO UPLOAD FAILED:",
+                    failedUploads
+                );
 
                 setMessage(
-                    "Game session ended, but camera recording could not be stopped"
+                    "Camera stopped, but video upload failed. Session remains active."
                 );
+
+                await fetchSessions();
+                return;
             }
 
+            // -------------------------------------------------
+            // 3. GENERATE QR AFTER SUCCESSFUL VIDEO UPLOAD
+            // -------------------------------------------------
+
+            try {
+                const qrResult =
+                    await generateQRCodeForUpload(
+                        session.id,
+                        cameraResult
+                    );
+
+                if (!qrResult.success) {
+                    console.error(
+                        "QR GENERATION FAILED:",
+                        qrResult
+                    );
+
+                    setMessage(
+                        qrResult.message ||
+                        "Video uploaded, but QR code generation failed."
+                    );
+
+                    // Do not complete the session yet.
+                    await fetchSessions();
+                    return;
+                }
+
+            } catch (qrError) {
+                console.error(
+                    "QR Generation Error:",
+                    qrError
+                );
+
+                setMessage(
+                    qrError.response?.data?.message ||
+                    qrError.message ||
+                    "Video uploaded, but QR code generation failed."
+                );
+
+                await fetchSessions();
+                return;
+            }
+
+            // -------------------------------------------------
+            // 4. ONLY NOW MARK SESSION COMPLETED
+            // -------------------------------------------------
+
+            const now = new Date();
+
+            const pad = (value) =>
+                String(value).padStart(2, "0");
+
+            const endTime =
+                `${now.getFullYear()}-` +
+                `${pad(now.getMonth() + 1)}-` +
+                `${pad(now.getDate())} ` +
+                `${pad(now.getHours())}:` +
+                `${pad(now.getMinutes())}:` +
+                `${pad(now.getSeconds())}`;
+
+            const res = await api.put(
+                `/game-session/${session.id}`,
+                {
+                    end_time: endTime,
+                    status: "completed",
+                }
+            );
+
+            console.log(
+                "END SESSION BACKEND RESPONSE:",
+                res.data
+            );
+
+            if (!res.data?.success) {
+                setMessage(
+                    res.data?.message ||
+                    "Video uploaded and QR generated, but session could not be completed."
+                );
+
+                await fetchSessions();
+                return;
+            }
+
+            // -------------------------------------------------
+            // 5. UPDATE LOCAL STATE IMMEDIATELY
+            // -------------------------------------------------
+
+            setSessions((prevSessions) =>
+                prevSessions.map((item) =>
+                    item.id === session.id
+                        ? {
+                            ...item,
+                            status: "completed",
+                            end_time: endTime,
+                        }
+                        : item
+                )
+            );
+
+            console.log(
+                "SESSION COMPLETED:",
+                session.id
+            );
+
+            setMessage(
+                "Session ended, video uploaded and QR code generated successfully."
+            );
+
+            // -------------------------------------------------
+            // 6. FINAL REFRESH
+            // -------------------------------------------------
+
             await fetchSessions();
+
         } catch (err) {
-            console.error("End Session Error:", err);
+            console.error(
+                "End Session Error:",
+                err
+            );
 
             setMessage(
                 err.response?.data?.message ||
+                err.message ||
                 "Failed to end game session"
             );
+
+            await fetchSessions();
+
         } finally {
-            // Allow another attempt after this operation finishes
-            manualEndingSessionsRef.current.delete(session.id);
+            manualEndingSessionsRef.current.delete(
+                session.id
+            );
         }
     };
-
-
-    // =========================================================
-    // GET REMAINING TIME
-    // =========================================================
 
     const getRemainingTime = useCallback(
         (session) => {
@@ -1145,10 +1592,6 @@ function GameSession() {
         [currentTime]
     );
 
-    // =========================================================
-    // FORMAT TIMER
-    // =========================================================
-
     const formatTimer = (seconds) => {
         if (
             seconds === null ||
@@ -1176,10 +1619,6 @@ function GameSession() {
             `${String(secs).padStart(2, "0")}`
         );
     };
-
-    // =========================================================
-    // AUTOMATICALLY END EXPIRED SESSION
-    // =========================================================
 
     const handleAutoEnd = useCallback(
         async (session) => {
@@ -1254,10 +1693,6 @@ function GameSession() {
         [fetchSessions]
     );
 
-    // =========================================================
-    // TIMER - UPDATE EVERY SECOND
-    // =========================================================
-
     useEffect(() => {
         const timer =
             setInterval(() => {
@@ -1270,10 +1705,6 @@ function GameSession() {
             clearInterval(timer);
         };
     }, []);
-
-    // =========================================================
-    // AUTOMATIC SESSION EXPIRY CHECK
-    // =========================================================
 
     useEffect(() => {
         if (currentTime === null) {
@@ -1304,10 +1735,6 @@ function GameSession() {
         handleAutoEnd,
     ]);
 
-    // =========================================================
-    // INITIAL LOAD
-    // =========================================================
-
     useEffect(() => {
         const load = async () => {
             setLoading(true);
@@ -1320,9 +1747,6 @@ function GameSession() {
         load();
     }, [fetchSessions]);
 
-    // =========================================================
-    // FILTERED SESSIONS
-    // =========================================================
 
     const filtered = sessions.filter(
         (session) =>
@@ -1338,30 +1762,16 @@ function GameSession() {
                 )
     );
 
-    // =========================================================
-    // ACTIVE SESSION COUNT
-    // =========================================================
-
     const active = sessions.filter(
         (session) =>
             session.status === "active"
     ).length;
 
-    // =========================================================
-    // CLOSE DETAILS MODAL
-    // =========================================================
-
     const closeDetails = () => {
         setShowDetail(false);
         setSelected(null);
         setRecording(null);
-        setSelectedCameraId("");
-        setSelectedVideo(null);
     };
-
-    // =========================================================
-    // CLOSE START MODAL
-    // =========================================================
 
     const closeStartModal = () => {
         if (starting) {
@@ -1372,10 +1782,6 @@ function GameSession() {
         setSelectedBookingId("");
         setStartError("");
     };
-
-    // =========================================================
-    // LOADING SCREEN
-    // =========================================================
 
     if (loading) {
         return (
@@ -1390,10 +1796,6 @@ function GameSession() {
             </div>
         );
     }
-
-    // =========================================================
-    // MAIN UI
-    // =========================================================
 
     return (
         <div className="game-session-page">
@@ -1674,24 +2076,43 @@ function GameSession() {
                                             View Details
                                         </button>
 
-                                        {canManage &&
-                                            sess.status ===
-                                            "active" && (
+
+                                        {canManage && sess.status === "preparing" && (
+                                            <>
                                                 <button
-                                                    className="end-session-btn"
-                                                    onClick={() =>
-                                                        handleEnd(
-                                                            sess
-                                                        )
-                                                    }
-                                                    title="End Session"
-                                                    aria-label="End Session"
+                                                    className="capture-photo-btn"
+                                                    onClick={() => handleCapturePhoto(sess)}
+                                                    disabled={capturingPhoto || starting}
+                                                    title="Capture player photo before the game starts"
                                                 >
-                                                    <Square
-                                                        size={15}
-                                                    />
+                                                    <Camera size={15} />
+                                                    {capturingPhoto ? "Capturing..." : "Photo"}
                                                 </button>
-                                            )}
+
+                                                <button
+                                                    className="start-session-btn"
+                                                    onClick={() => handleStartGame(sess)}
+                                                    disabled={starting || capturingPhoto}
+                                                    title="Start the game and begin camera recording"
+                                                >
+                                                    <Play size={15} />
+                                                    Start Game
+                                                </button>
+                                            </>
+                                        )}
+
+                                        {canManage && sess.status === "active" && (
+                                            <button
+                                                className="end-session-btn"
+                                                onClick={() => handleEnd(sess)}
+                                                disabled={starting}
+                                                title="End Session"
+                                                aria-label="End Session"
+                                            >
+                                                <Square size={15} />
+                                            </button>
+                                        )}
+
                                     </div>
                                 </div>
                             )
@@ -1701,31 +2122,18 @@ function GameSession() {
                 )}
             </div>
 
-            {/* =================================================
-                SESSION DETAILS MODAL
-            ================================================= */}
-
             {showDetail && (
                 <GameSessionDetailModal
                     selected={selected}
                     detailsLoading={detailsLoading}
                     canManage={canManage}
                     recording={recording}
-                    cameras={cameras}
-                    selectedCameraId={selectedCameraId}
-                    setSelectedCameraId={setSelectedCameraId}
-                    selectedVideo={selectedVideo}
-                    setSelectedVideo={setSelectedVideo}
-                    uploadingVideo={uploadingVideo}
+                    sessionPhotos={sessionPhotos}
                     onClose={closeDetails}
-                    onUpload={handleUploadRecording}
                     onGenerateQRCode={handleGenerateQRCode}
+
                 />
             )}
-
-            {/* =================================================
-                START SESSION MODAL
-            ================================================= */}
 
             {showStart && (
                 <GameSessionStartModal

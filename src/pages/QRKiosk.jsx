@@ -18,10 +18,10 @@ function QRKiosk() {
                 const qrData = result.data;
 
                 setData(qrData);
-
-                const videoUrl =
-                    `${window.location.origin}/video/${qrData.qr_code}`;
-
+                // const videoUrl =
+                    // `${window.location.origin}/video/${qrData.qr_code}`;
+                const videoUrl = `${import.meta.env.VITE_FRONTEND_URL}/video/${qrData.qr_code}`;
+                // const videoUrl = `http://10.152.156.209:5173/video/${qrData.qr_code}`;
                 const image = await QRCode.toDataURL(videoUrl, {
                     width: 600,
                     margin: 2,

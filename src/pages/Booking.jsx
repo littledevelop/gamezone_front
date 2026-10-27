@@ -19,7 +19,8 @@ function Booking() {
 
   const role = user?.role_name || "Player";
   const userId = user?.id;
-
+  const isStaff = role === "Staff";
+  const assignedGameId = user ?. assigned_game_id;
   const canManageBooking = isAdminOrStaff();
   const isPlayer = role === "Player";
 
@@ -186,14 +187,20 @@ function Booking() {
         setBookings(allBookings);
       }
     } catch (error) {
-      console.error(
-        "Fetch bookings error:",
-        error
-      );
+        console.error("Fetch bookings error:", error);
 
-      setMessage(
-        "Unable to connect to server."
-      );
+  console.error("Status:", error.response?.status);
+  console.error("Response:", error.response?.data);
+  console.error("URL:", error.config?.url);
+
+  setMessage(
+    error.response?.data?.message ||
+      `Unable to load bookings${
+        error.response?.status
+          ? ` (${error.response.status})`
+          : ""
+      }.`
+  );
     }
   }, [isPlayer, userId]);
 
@@ -942,6 +949,14 @@ function Booking() {
         station.status !== "maintenance"
     );
 
+  const availableGames = isStaff
+  ? games.filter(
+      (game) =>
+        Number(game.id) === Number(assignedGameId)
+    )
+  : games;
+
+
   // =========================================================
   // LOADING
   // =========================================================
@@ -1160,7 +1175,7 @@ function Booking() {
                   Select Game
                 </option>
 
-                {games.map((game) => (
+                {availableGames.map((game) => (
                   <option
                     key={game.id}
                     value={game.id}

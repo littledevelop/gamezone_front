@@ -55,7 +55,7 @@ function Users() {
         const fetchGames = async () => {
             try {
                 const response = await api.get("/games");
-                setGames(response.data.data || []);
+                setGames(response.data.games || []);
             }
             catch (err) {
                 console.error(
@@ -122,16 +122,16 @@ function Users() {
 
         try {
             const response = await api.post("/users", {
-    full_name: formData.full_name,
-    mobile: formData.mobile,
-    email: formData.email,
-    password: formData.password,
-    role_id: Number(formData.role_id),
-    assigned_game_id:
-        formData.role_id === "2"
-            ? Number(formData.assigned_game_id)
-            : null,
-});
+                full_name: formData.full_name,
+                mobile: formData.mobile,
+                email: formData.email,
+                password: formData.password,
+                role_id: Number(formData.role_id),
+                assigned_game_id:
+                    formData.role_id === "2"
+                        ? Number(formData.assigned_game_id)
+                        : null,
+            });
 
             setMessage(
                 response.data.message ||
@@ -443,7 +443,7 @@ function Users() {
                                                     key={game.id}
                                                     value={game.id}
                                                 >
-                                                    {game.name}
+                                                    {game.game_name}
                                                 </option>
                                             ))}
                                         </select>
