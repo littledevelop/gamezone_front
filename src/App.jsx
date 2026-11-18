@@ -5,6 +5,7 @@ import VideoView from "./pages/VideoView.jsx";
 import "./styles/App.css";
 import QRDisplay from "./pages/QRDisplay.jsx";
 import QRKiosk from "./pages/QRKiosk.jsx";
+import ReelView from "./pages/ReelView.jsx";
 function App() {
     const [isLoggedIn, setIsLoggedIn] = useState(
         !!localStorage.getItem("token")
@@ -37,6 +38,13 @@ function App() {
         const qrCode = path.replace("/video/", "");
 
         return <VideoView qrCode={qrCode} />;
+    }
+
+    // Public reel page opened from reel QR code
+    if (path.startsWith("/reel/")) {
+        const qrCode = path.replace("/reel/", "");
+
+        return <ReelView qrCode={qrCode} />;
     }
 
     return (

@@ -25,7 +25,15 @@ function QRDisplay({ qrCode }) {
                     // const videoUrl =
                     // `${import.meta.env.VITE_FRONTEND_URL || window.location.origin}/video/${qrCode}`;
 
-                    const videoUrl = `http://10.152.156.209:5173/video/${qrCode}`;
+                    // const videoUrl = `http://10.152.156.209:5173/video/${qrCode}`;
+                    // const videoUrl = `${window.location.origin}/video/${qrCode}`;
+
+                    const frontendUrl = (
+                        import.meta.env.VITE_FRONTEND_URL ||
+                        window.location.origin
+                    ).replace(/\/+$/, "");
+
+                    const videoUrl = `${frontendUrl}/video/${qrCode}`;
 
                     setData((prev) => ({
                         ...prev,

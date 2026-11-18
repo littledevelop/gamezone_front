@@ -8,50 +8,69 @@ function QRKiosk() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
+    useEffect(() => {
+    let isMounted = true;
+
     const loadLatestQR = async () => {
         try {
-            const response = await api.get("/qr-codes/latest");
+            const response = await api.get(
+                "/qr-codes/reel/latest-reel"
+            );
 
             const result = response.data;
+
+            if (!isMounted) return;
 
             if (result.success && result.data) {
                 const qrData = result.data;
 
-                setData(qrData);
-                // const videoUrl =
-                    // `${window.location.origin}/video/${qrData.qr_code}`;
-                const videoUrl = `${import.meta.env.VITE_FRONTEND_URL}/video/${qrData.qr_code}`;
-                // const videoUrl = `http://10.152.156.209:5173/video/${qrData.qr_code}`;
+                const frontendUrl = (
+                    import.meta.env.VITE_FRONTEND_URL ||
+                    window.location.origin
+                ).replace(/\/+$/, "");
+
+                const videoUrl =
+                    `${frontendUrl}/reel/${qrData.qr_code}`;
+
                 const image = await QRCode.toDataURL(videoUrl, {
                     width: 600,
                     margin: 2,
                 });
 
+                if (!isMounted) return;
+
+                setData(qrData);
                 setQrImage(image);
                 setError("");
             } else {
                 setData(null);
                 setQrImage("");
+                setError("");
             }
         } catch (err) {
             console.error("Kiosk QR error:", err);
-            setError("Unable to check for new QR code.");
+
+            if (isMounted) {
+                setError(
+                    "Unable to check for new QR code."
+                );
+            }
         } finally {
-            setLoading(false);
+            if (isMounted) {
+                setLoading(false);
+            }
         }
     };
 
-    useEffect(() => {
-        const checkQR = async () => {
-            await loadLatestQR();
-        };
+    loadLatestQR();
 
-        checkQR();
+    const interval = setInterval(loadLatestQR, 5000);
 
-        const interval = setInterval(checkQR, 5000);
-
-        return () => clearInterval(interval);
-    }, []);
+    return () => {
+        isMounted = false;
+        clearInterval(interval);
+    };
+}, []);
 
     if (loading) {
         return (

@@ -12,6 +12,8 @@ import {
     Users,
     LogOut,
     X,
+    Clapperboard,
+
 } from "lucide-react";
 
 function Sidebar({
@@ -75,6 +77,10 @@ function Sidebar({
                 icon: Video,
             },
             {
+                label: "Reels",
+                icon: Clapperboard,
+            },
+            {
                 label: "Profile",
                 icon: User,
             },
@@ -112,6 +118,10 @@ function Sidebar({
             {
                 label: "Recordings",
                 icon: Video,
+            },
+            {
+                label: "Reels",
+                icon: Clapperboard,
             },
             {
                 label: "Profile",
@@ -199,9 +209,8 @@ function Sidebar({
             )}
 
             <aside
-                className={`sidebar ${
-                    sidebarOpen ? "sidebar-open" : ""
-                }`}
+                className={`sidebar ${sidebarOpen ? "sidebar-open" : ""
+                    }`}
             >
                 {/* -------------------------------------- */}
                 {/* LOGO */}
@@ -246,8 +255,8 @@ function Sidebar({
                             {role === "Admin"
                                 ? "Full Management"
                                 : role === "Staff"
-                                ? "Operations"
-                                : "Player Account"}
+                                    ? "Operations"
+                                    : "Player Account"}
                         </div>
                     </div>
                 </div>
@@ -268,11 +277,10 @@ function Sidebar({
                             <button
                                 key={item.label}
                                 type="button"
-                                className={`sidebar-nav-item ${
-                                    activePage === item.label
+                                className={`sidebar-nav-item ${activePage === item.label
                                         ? "active"
                                         : ""
-                                }`}
+                                    }`}
                                 onClick={() =>
                                     handleMenuClick(item.label)
                                 }

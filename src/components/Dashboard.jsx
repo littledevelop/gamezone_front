@@ -11,6 +11,7 @@ import DashboardHome from "../pages/DashboardHome";
 import Camera from "../pages/Camera";
 import Users from "../pages/Users";
 import "../styles/Dashboard.css";
+import Reels from "../pages/Reels";
 
 function Dashboard({ onLogout }) {
   const user = JSON.parse(localStorage.getItem("user") || "{}");
@@ -35,6 +36,7 @@ function Dashboard({ onLogout }) {
       "Game Session",
       "Payments",
       "Recordings",
+      "Reels",
       "Profile",
     ],
 
@@ -48,6 +50,7 @@ function Dashboard({ onLogout }) {
       "Game Session",
       "Payments",
       "Recordings",
+      "Reels",
       "Profile",
     ],
 
@@ -84,14 +87,14 @@ function Dashboard({ onLogout }) {
         return <DashboardHome user={user} setActivePage={handlePageChange} />;
 
       case "Games":
-        return <GamesPage 
-        setActivePage={handlePageChange}
-        assignedGameId={assignedGameId}
-         />;
+        return <GamesPage
+          setActivePage={handlePageChange}
+          assignedGameId={assignedGameId}
+        />;
 
       case "Users":
-        return <Users/>
-        
+        return <Users />
+
       case "Gaming Station":
         return <GamingStation assignedGameId={assignedGameId} />;
 
@@ -103,10 +106,10 @@ function Dashboard({ onLogout }) {
         return <Memberships />;
 
       case "Bookings":
-        return <Booking 
-        pageType="Bookings" 
-        setActivePage={handlePageChange}
-        assignedGameId={assignedGameId} />;
+        return <Booking
+          pageType="Bookings"
+          setActivePage={handlePageChange}
+          assignedGameId={assignedGameId} />;
 
       case "My Bookings":
         return (
@@ -114,8 +117,8 @@ function Dashboard({ onLogout }) {
         );
       case "Game Session":
       case "My Game Sessions":
-        return <GameSession 
-        assignedGameId={assignedGameId}/>;
+        return <GameSession
+          assignedGameId={assignedGameId} />;
 
       case "Payments":
       case "My Payments":
@@ -129,6 +132,9 @@ function Dashboard({ onLogout }) {
             <p>Gameplay recordings will appear here.</p>
           </div>
         );
+
+      case "Reels":
+        return <Reels />;
 
       case "Profile":
         return (
